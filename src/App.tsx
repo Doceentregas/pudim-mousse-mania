@@ -8,6 +8,7 @@ import Index from "./pages/Index";
 import Cardapio from "./pages/Cardapio";
 import ProductDetail from "./pages/ProductDetail";
 import Carrinho from "./pages/Carrinho";
+import Checkout from "./pages/Checkout";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
 
@@ -25,6 +26,7 @@ const App = () => (
             <Route path="/cardapio" element={<Cardapio />} />
             <Route path="/produto/:id" element={<ProductDetail />} />
             <Route path="/carrinho" element={<Carrinho />} />
+            <Route path="/checkout" element={<Checkout />} />
             <Route path="/login" element={<Login />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
