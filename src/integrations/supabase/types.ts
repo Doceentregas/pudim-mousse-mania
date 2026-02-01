@@ -14,7 +14,81 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      orders: {
+        Row: {
+          coupon_code: string | null
+          created_at: string
+          customer_email: string | null
+          customer_name: string | null
+          customer_phone: string | null
+          delivery_address: Json | null
+          delivery_fee: number
+          discount: number
+          id: string
+          items: Json
+          notes: string | null
+          payment_id: string | null
+          payment_method: string
+          payment_status: string
+          pix_expiration: string | null
+          pix_qr_code: string | null
+          pix_qr_code_base64: string | null
+          status: string
+          subtotal: number
+          total: number
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          coupon_code?: string | null
+          created_at?: string
+          customer_email?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          delivery_address?: Json | null
+          delivery_fee?: number
+          discount?: number
+          id?: string
+          items: Json
+          notes?: string | null
+          payment_id?: string | null
+          payment_method?: string
+          payment_status?: string
+          pix_expiration?: string | null
+          pix_qr_code?: string | null
+          pix_qr_code_base64?: string | null
+          status?: string
+          subtotal: number
+          total: number
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          coupon_code?: string | null
+          created_at?: string
+          customer_email?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          delivery_address?: Json | null
+          delivery_fee?: number
+          discount?: number
+          id?: string
+          items?: Json
+          notes?: string | null
+          payment_id?: string | null
+          payment_method?: string
+          payment_status?: string
+          pix_expiration?: string | null
+          pix_qr_code?: string | null
+          pix_qr_code_base64?: string | null
+          status?: string
+          subtotal?: number
+          total?: number
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

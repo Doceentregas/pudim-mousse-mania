@@ -220,9 +220,11 @@ const Carrinho = () => {
                   </p>
                 )}
 
-                <Button className="w-full mt-4" size="lg">
-                  Finalizar Pedido
-                  <ArrowRight className="ml-2 h-4 w-4" />
+                <Button className="w-full mt-4" size="lg" asChild>
+                  <Link to="/checkout">
+                    Finalizar Pedido
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Link>
                 </Button>
               </div>
             </div>
