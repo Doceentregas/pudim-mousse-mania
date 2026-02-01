@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useCartContext } from '@/contexts/CartContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { AddressForm, Address } from '@/components/checkout/AddressForm';
 
 interface PixPaymentData {
   qrCode: string;
@@ -17,6 +18,16 @@ interface PixPaymentData {
   paymentId: string;
 }
 
+const emptyAddress: Address = {
+  cep: '',
+  street: '',
+  number: '',
+  complement: '',
+  neighborhood: '',
+  city: '',
+  state: '',
+};
+
 const Checkout = () => {
   const navigate = useNavigate();
   const { items, totalPrice, clearCart } = useCartContext();
@@ -24,13 +35,14 @@ const Checkout = () => {
   const [customerName, setCustomerName] = useState('');
   const [customerEmail, setCustomerEmail] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
+  const [address, setAddress] = useState<Address>(emptyAddress);
+  const [deliveryFee, setDeliveryFee] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [orderId, setOrderId] = useState<string | null>(null);
   const [pixData, setPixData] = useState<PixPaymentData | null>(null);
   const [paymentStatus, setPaymentStatus] = useState<string>('pending');
   const [copied, setCopied] = useState(false);
 
-  const deliveryFee = totalPrice >= 50 ? 0 : 5.90;
   const finalTotal = totalPrice + deliveryFee;
 
   // Poll for payment status
@@ -74,6 +86,15 @@ const Checkout = () => {
       return;
     }
 
+    if (!address.cep || !address.street || !address.number) {
+      toast({
+        title: "Endereço incompleto",
+        description: "Preencha o CEP, rua e número para entrega.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -93,6 +114,7 @@ const Checkout = () => {
         customer_name: customerName,
         customer_email: customerEmail || null,
         customer_phone: customerPhone,
+        delivery_address: JSON.parse(JSON.stringify(address)),
         payment_method: 'pix',
         payment_status: 'pending',
         status: 'pending',
@@ -100,7 +122,7 @@ const Checkout = () => {
 
       const { data: order, error: orderError } = await supabase
         .from('orders')
-        .insert(orderData)
+        .insert([orderData])
         .select()
         .single();
 
@@ -218,41 +240,55 @@ const Checkout = () => {
           {/* Customer Info / PIX Display */}
           <div className="space-y-4">
             {!pixData ? (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Seus Dados</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <Label htmlFor="name">Nome *</Label>
-                    <Input
-                      id="name"
-                      value={customerName}
-                      onChange={(e) => setCustomerName(e.target.value)}
-                      placeholder="Seu nome completo"
+              <>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Seus Dados</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div>
+                      <Label htmlFor="name">Nome *</Label>
+                      <Input
+                        id="name"
+                        value={customerName}
+                        onChange={(e) => setCustomerName(e.target.value)}
+                        placeholder="Seu nome completo"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="phone">Telefone (WhatsApp) *</Label>
+                      <Input
+                        id="phone"
+                        value={customerPhone}
+                        onChange={(e) => setCustomerPhone(e.target.value)}
+                        placeholder="(11) 99999-9999"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="email">Email (opcional)</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        value={customerEmail}
+                        onChange={(e) => setCustomerEmail(e.target.value)}
+                        placeholder="seu@email.com"
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Address Form */}
+                <Card>
+                  <CardContent className="pt-6">
+                    <AddressForm
+                      address={address}
+                      onAddressChange={setAddress}
+                      deliveryFee={deliveryFee}
+                      onDeliveryFeeChange={setDeliveryFee}
                     />
-                  </div>
-                  <div>
-                    <Label htmlFor="phone">Telefone (WhatsApp) *</Label>
-                    <Input
-                      id="phone"
-                      value={customerPhone}
-                      onChange={(e) => setCustomerPhone(e.target.value)}
-                      placeholder="(11) 99999-9999"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="email">Email (opcional)</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={customerEmail}
-                      onChange={(e) => setCustomerEmail(e.target.value)}
-                      placeholder="seu@email.com"
-                    />
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              </>
             ) : (
               <Card>
                 <CardHeader>
