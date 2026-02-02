@@ -15,6 +15,7 @@ import Perfil from "./pages/Perfil";
 import AdminLogin from "./pages/AdminLogin";
 import AdminOrders from "./pages/admin/Orders";
 import AdminProducts from "./pages/admin/Products";
+import AdminSettings from "./pages/admin/Settings";
 import RecuperarSenha from "./pages/RecuperarSenha";
 import NotFound from "./pages/NotFound";
 
@@ -39,6 +40,7 @@ const App = () => (
               <Route path="/admin-login" element={<AdminLogin />} />
               <Route path="/admin/pedidos" element={<AdminOrders />} />
               <Route path="/admin/produtos" element={<AdminProducts />} />
+              <Route path="/admin/configuracoes" element={<AdminSettings />} />
               <Route path="/recuperar-senha" element={<RecuperarSenha />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />

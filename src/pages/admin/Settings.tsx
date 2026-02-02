@@ -1,0 +1,210 @@
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { ArrowLeft, Truck, Plus, Trash2, Save, Loader2, LogOut } from 'lucide-react';
+import { Layout } from '@/components/layout/Layout';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { toast } from '@/hooks/use-toast';
+
+interface DeliveryZone {
+  id: string;
+  name: string;
+  cepRanges: string[];
+  fee: number;
+}
+
+// Default delivery zones
+const DEFAULT_ZONES: DeliveryZone[] = [
+  { id: '1', name: 'Centro SP', cepRanges: ['01000-01999'], fee: 5.90 },
+  { id: '2', name: 'Zona Sul', cepRanges: ['04000-04999'], fee: 8.90 },
+  { id: '3', name: 'Zona Norte', cepRanges: ['02000-02999'], fee: 10.90 },
+  { id: '4', name: 'Zona Leste', cepRanges: ['03000-03999', '08000-08999'], fee: 12.90 },
+  { id: '5', name: 'Zona Oeste', cepRanges: ['05000-05999'], fee: 9.90 },
+];
+
+const AdminSettings = () => {
+  const navigate = useNavigate();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [zones, setZones] = useState<DeliveryZone[]>([]);
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    const isAdminAuth = sessionStorage.getItem('admin_authenticated');
+    if (!isAdminAuth) {
+      navigate('/admin-login');
+    } else {
+      setIsAuthenticated(true);
+      // Load zones from localStorage or use defaults
+      const savedZones = localStorage.getItem('delivery_zones');
+      if (savedZones) {
+        setZones(JSON.parse(savedZones));
+      } else {
+        setZones(DEFAULT_ZONES);
+      }
+    }
+  }, [navigate]);
+
+  const handleLogout = () => {
+    sessionStorage.removeItem('admin_authenticated');
+    toast({ title: "Sessão encerrada" });
+    navigate('/admin-login');
+  };
+
+  const updateZoneFee = (zoneId: string, newFee: number) => {
+    setZones(prev => prev.map(zone => 
+      zone.id === zoneId ? { ...zone, fee: newFee } : zone
+    ));
+  };
+
+  const updateZoneName = (zoneId: string, newName: string) => {
+    setZones(prev => prev.map(zone => 
+      zone.id === zoneId ? { ...zone, name: newName } : zone
+    ));
+  };
+
+  const updateZoneCeps = (zoneId: string, cepsString: string) => {
+    const cepRanges = cepsString.split(',').map(c => c.trim()).filter(Boolean);
+    setZones(prev => prev.map(zone => 
+      zone.id === zoneId ? { ...zone, cepRanges } : zone
+    ));
+  };
+
+  const addZone = () => {
+    const newZone: DeliveryZone = {
+      id: Date.now().toString(),
+      name: 'Nova Zona',
+      cepRanges: ['00000-00000'],
+      fee: 10.00,
+    };
+    setZones(prev => [...prev, newZone]);
+  };
+
+  const removeZone = (zoneId: string) => {
+    setZones(prev => prev.filter(zone => zone.id !== zoneId));
+  };
+
+  const saveZones = async () => {
+    setIsSaving(true);
+    try {
+      localStorage.setItem('delivery_zones', JSON.stringify(zones));
+      toast({ title: "Configurações salvas!" });
+    } catch (error) {
+      toast({ title: "Erro ao salvar", variant: "destructive" });
+    }
+    setIsSaving(false);
+  };
+
+  if (!isAuthenticated) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center min-h-screen">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </Layout>
+    );
+  }
+
+  return (
+    <Layout>
+      <div className="container px-4 py-6">
+        {/* Header */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="icon" onClick={() => navigate('/admin/pedidos')}>
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <h1 className="font-serif text-2xl font-bold text-foreground">
+              Configurações de Frete
+            </h1>
+          </div>
+          <div className="flex gap-2">
+            <Button onClick={saveZones} disabled={isSaving}>
+              {isSaving ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <Save className="h-4 w-4 mr-2" />
+              )}
+              Salvar
+            </Button>
+            <Button variant="destructive" onClick={handleLogout}>
+              <LogOut className="h-4 w-4 mr-2" />
+              Sair
+            </Button>
+          </div>
+        </div>
+
+        {/* Zones */}
+        <div className="space-y-4">
+          {zones.map((zone) => (
+            <Card key={zone.id}>
+              <CardContent className="p-4">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                  <div className="space-y-2">
+                    <Label>Nome da Zona</Label>
+                    <Input
+                      value={zone.name}
+                      onChange={(e) => updateZoneName(zone.id, e.target.value)}
+                      placeholder="Ex: Centro SP"
+                    />
+                  </div>
+                  <div className="space-y-2 md:col-span-2">
+                    <Label>Faixas de CEP (separar por vírgula)</Label>
+                    <Input
+                      value={zone.cepRanges.join(', ')}
+                      onChange={(e) => updateZoneCeps(zone.id, e.target.value)}
+                      placeholder="Ex: 01000-01999, 02000-02999"
+                    />
+                  </div>
+                  <div className="flex gap-2 items-end">
+                    <div className="flex-1 space-y-2">
+                      <Label>Valor (R$)</Label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={zone.fee}
+                        onChange={(e) => updateZoneFee(zone.id, parseFloat(e.target.value) || 0)}
+                      />
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-destructive hover:text-destructive"
+                      onClick={() => removeZone(zone.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+
+          <Button variant="outline" className="w-full" onClick={addZone}>
+            <Plus className="h-4 w-4 mr-2" />
+            Adicionar Zona de Entrega
+          </Button>
+        </div>
+
+        {/* Info */}
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Truck className="h-5 w-5" />
+              Como funciona
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm text-muted-foreground space-y-2">
+            <p>• Configure zonas de entrega com faixas de CEP e valores de frete.</p>
+            <p>• Use o formato "XXXXX-XXXXX" para definir intervalos de CEP.</p>
+            <p>• CEPs não cobertos usarão o valor padrão de R$ 15,90.</p>
+          </CardContent>
+        </Card>
+      </div>
+    </Layout>
+  );
+};
+
+export default AdminSettings;
