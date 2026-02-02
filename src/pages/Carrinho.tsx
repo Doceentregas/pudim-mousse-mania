@@ -6,45 +6,16 @@ import { Input } from '@/components/ui/input';
 import { useCartContext } from '@/contexts/CartContext';
 import { useState } from 'react';
 
-const WHATSAPP_NUMBER = '5521995612947';
+const FIXED_DELIVERY_FEE = 4.00;
 
 const Carrinho = () => {
-  const { items, updateQuantity, removeItem, totalPrice, totalItems, clearCart } = useCartContext();
+  const { items, updateQuantity, removeItem, totalPrice, totalItems } = useCartContext();
   const [coupon, setCoupon] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState<string | null>(null);
   
-  const deliveryFee = totalPrice >= 50 ? 0 : 5.90;
+  const deliveryFee = FIXED_DELIVERY_FEE;
   const discount = appliedCoupon === 'DOCE10' ? totalPrice * 0.1 : 0;
   const finalTotal = totalPrice + deliveryFee - discount;
-
-  const handleWhatsAppOrder = () => {
-    // Build order message
-    let message = `🍮 *Novo Pedido - DoceEntrega*\n\n`;
-    message += `*Itens do Pedido:*\n`;
-    
-    items.forEach((item) => {
-      message += `• ${item.quantity}x ${item.product.name}`;
-      if (item.size) message += ` (${item.size})`;
-      if (item.extras && item.extras.length > 0) {
-        message += ` + ${item.extras.join(', ')}`;
-      }
-      message += ` - R$ ${item.totalPrice.toFixed(2).replace('.', ',')}\n`;
-    });
-
-    message += `\n*Subtotal:* R$ ${totalPrice.toFixed(2).replace('.', ',')}\n`;
-    message += `*Entrega:* ${deliveryFee === 0 ? 'Grátis' : `R$ ${deliveryFee.toFixed(2).replace('.', ',')}`}\n`;
-    if (discount > 0) {
-      message += `*Desconto:* - R$ ${discount.toFixed(2).replace('.', ',')}\n`;
-    }
-    message += `\n💰 *Total: R$ ${finalTotal.toFixed(2).replace('.', ',')}*\n`;
-    message += `\n📍 _Informe seu endereço completo para entrega_`;
-
-    const encodedMessage = encodeURIComponent(message);
-    const whatsappUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodedMessage}`;
-    
-    window.open(whatsappUrl, '_blank');
-    clearCart();
-  };
 
   const applyCoupon = () => {
     if (coupon.toUpperCase() === 'DOCE10') {
@@ -223,9 +194,7 @@ const Carrinho = () => {
                   
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Entrega</span>
-                    <span className={deliveryFee === 0 ? 'text-primary' : ''}>
-                      {deliveryFee === 0 ? 'Grátis' : `R$ ${deliveryFee.toFixed(2).replace('.', ',')}`}
-                    </span>
+                    <span>R$ {deliveryFee.toFixed(2).replace('.', ',')}</span>
                   </div>
 
                   {discount > 0 && (
@@ -245,15 +214,11 @@ const Carrinho = () => {
                   </div>
                 </div>
 
-                {totalPrice < 50 && (
-                  <p className="text-xs text-muted-foreground mt-3">
-                    Faltam R$ {(50 - totalPrice).toFixed(2).replace('.', ',')} para frete grátis
-                  </p>
-                )}
-
-                <Button className="w-full mt-4" size="lg" onClick={handleWhatsAppOrder}>
-                  Fazer Encomenda
-                  <ArrowRight className="ml-2 h-4 w-4" />
+                <Button className="w-full mt-4" size="lg" asChild>
+                  <Link to="/checkout">
+                    Finalizar Compra
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Link>
                 </Button>
               </div>
             </div>

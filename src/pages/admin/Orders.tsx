@@ -217,29 +217,39 @@ const AdminOrders = () => {
     }
   };
 
-  const sendWhatsAppConfirmation = async (order: Order) => {
-    try {
-      const { data, error } = await supabase.functions.invoke('send-whatsapp', {
-        body: {
-          phone: order.customer_phone,
-          orderId: order.id,
-          customerName: order.customer_name,
-          items: order.items,
-          total: order.total,
-        },
-      });
-
-      if (error) throw error;
-
-      // Open WhatsApp link
-      window.open(data.whatsappLink, '_blank');
-    } catch (error) {
-      console.error('Error sending WhatsApp:', error);
+  const sendWhatsAppConfirmation = (order: Order) => {
+    // Use the customer's phone from the order
+    if (!order.customer_phone) {
       toast({
-        title: "Erro ao preparar mensagem",
+        title: "Telefone não encontrado",
+        description: "Este pedido não tem telefone cadastrado.",
         variant: "destructive",
       });
+      return;
     }
+
+    // Format phone number (remove non-digits and ensure country code)
+    let phone = order.customer_phone.replace(/\D/g, '');
+    if (!phone.startsWith('55')) {
+      phone = '55' + phone;
+    }
+
+    // Build message
+    let message = `Olá ${order.customer_name || 'Cliente'}! 🍮\n\n`;
+    message += `Seu pedido #${order.id.slice(0, 8).toUpperCase()} está sendo processado.\n\n`;
+    message += `*Itens:*\n`;
+    order.items.forEach(item => {
+      message += `• ${item.quantity}x ${item.name}`;
+      if (item.size) message += ` (${item.size})`;
+      message += `\n`;
+    });
+    message += `\n*Total: R$ ${order.total.toFixed(2).replace('.', ',')}*\n`;
+    message += `\nObrigado pela preferência! 😊`;
+
+    const encodedMessage = encodeURIComponent(message);
+    const whatsappUrl = `https://wa.me/${phone}?text=${encodedMessage}`;
+    
+    window.open(whatsappUrl, '_blank');
   };
 
   const formatDate = (dateString: string) => {

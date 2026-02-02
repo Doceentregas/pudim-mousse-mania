@@ -53,7 +53,7 @@ const Login = () => {
         toast({
           title: "Bem-vindo de volta! 🍮",
         });
-        navigate('/');
+        navigate('/perfil');
       } else {
         if (!name) {
           toast({
