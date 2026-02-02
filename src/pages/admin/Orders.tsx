@@ -262,6 +262,12 @@ const AdminOrders = () => {
     });
   };
 
+  const handleLogout = () => {
+    sessionStorage.removeItem('admin_authenticated');
+    toast({ title: "Sessão encerrada" });
+    navigate('/admin-login');
+  };
+
   // Stats
   const todayOrders = orders.filter(o => 
     new Date(o.created_at).toDateString() === new Date().toDateString()
@@ -280,12 +286,6 @@ const AdminOrders = () => {
       </Layout>
     );
   }
-
-  const handleLogout = () => {
-    sessionStorage.removeItem('admin_authenticated');
-    toast({ title: "Sessão encerrada" });
-    navigate('/admin-login');
-  };
 
   return (
     <Layout>
