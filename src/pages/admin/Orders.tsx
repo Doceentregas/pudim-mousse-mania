@@ -84,7 +84,7 @@ const PAYMENT_STATUS_CONFIG: Record<string, { label: string; color: string }> = 
 
 const AdminOrders = () => {
   const navigate = useNavigate();
-  const { user, loading, isAdmin } = useAuthContext();
+  const { loading } = useAuthContext();
   const [orders, setOrders] = useState<Order[]>([]);
   const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
   const [isLoadingOrders, setIsLoadingOrders] = useState(true);
@@ -92,16 +92,18 @@ const AdminOrders = () => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
-  // Check auth and admin status
+  // Check admin authentication via session storage
   useEffect(() => {
-    if (!loading && (!user || !isAdmin)) {
-      navigate('/login');
+    const isAdminAuth = sessionStorage.getItem('admin_authenticated');
+    if (!isAdminAuth) {
+      navigate('/admin-login');
     }
-  }, [user, loading, isAdmin, navigate]);
+  }, [navigate]);
 
   // Fetch orders
   useEffect(() => {
-    if (!isAdmin) return;
+    const isAdminAuth = sessionStorage.getItem('admin_authenticated');
+    if (!isAdminAuth) return;
 
     const fetchOrders = async () => {
       const { data, error } = await supabase
@@ -169,7 +171,7 @@ const AdminOrders = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [isAdmin]);
+  }, []);
 
   // Filter orders
   useEffect(() => {
@@ -264,16 +266,18 @@ const AdminOrders = () => {
     );
   }
 
-  if (!isAdmin) {
-    return null;
-  }
-
   return (
     <Layout>
       <div className="container px-4 py-6">
-        <h1 className="font-serif text-2xl font-bold text-foreground mb-6">
-          Painel Administrativo
-        </h1>
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+          <h1 className="font-serif text-2xl font-bold text-foreground">
+            Painel Administrativo
+          </h1>
+          <Button variant="outline" onClick={() => navigate('/admin/produtos')}>
+            <Package className="h-4 w-4 mr-2" />
+            Gerenciar Produtos
+          </Button>
+        </div>
 
         {/* Stats Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
