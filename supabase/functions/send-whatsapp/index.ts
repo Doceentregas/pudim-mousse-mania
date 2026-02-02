@@ -21,6 +21,7 @@ serve(async (req) => {
   try {
     const { phone, orderId, customerName, items, total }: WhatsAppRequest = await req.json();
 
+    // Validate required fields
     if (!phone || !orderId) {
       return new Response(
         JSON.stringify({ error: 'phone e orderId são obrigatórios' }),
@@ -28,27 +29,61 @@ serve(async (req) => {
       );
     }
 
+    // Validate orderId format (UUID)
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(orderId)) {
+      return new Response(
+        JSON.stringify({ error: 'Formato de orderId inválido' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Validate phone format (only digits, 10-15 chars)
+    const cleanPhone = phone.replace(/\D/g, '');
+    if (cleanPhone.length < 10 || cleanPhone.length > 15) {
+      return new Response(
+        JSON.stringify({ error: 'Formato de telefone inválido' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Format phone number (remove special chars, add country code)
-    let formattedPhone = phone.replace(/\D/g, '');
-    if (formattedPhone.length === 11) {
-      formattedPhone = '55' + formattedPhone;
-    } else if (formattedPhone.length === 10) {
+    let formattedPhone = cleanPhone;
+    if (formattedPhone.length === 11 || formattedPhone.length === 10) {
       formattedPhone = '55' + formattedPhone;
     }
 
+    // Sanitize customer name to prevent injection
+    const sanitizedName = (customerName || 'Cliente')
+      .replace(/[<>"'&]/g, '')
+      .substring(0, 100);
+
+    // Validate and sanitize items
+    const validItems = Array.isArray(items) 
+      ? items.slice(0, 50).map(item => ({
+          name: String(item.name || '').replace(/[<>"'&]/g, '').substring(0, 100),
+          quantity: Math.min(Math.max(1, Number(item.quantity) || 1), 999)
+        }))
+      : [];
+
+    // Validate total
+    const validTotal = typeof total === 'number' && total > 0 && total < 1000000 
+      ? total 
+      : 0;
+
     // Build message
-    const itemsList = items.map(item => `  • ${item.quantity}x ${item.name}`).join('\n');
+    const itemsList = validItems.map(item => `  • ${item.quantity}x ${item.name}`).join('\n');
     
     const message = `🍮 *DoceEntrega - Pedido Confirmado!*
 
-Olá, ${customerName}! 👋
+Olá, ${sanitizedName}! 👋
 
 Seu pedido *#${orderId.slice(0, 8).toUpperCase()}* foi confirmado e está sendo preparado! 🎉
 
 *Itens do pedido:*
 ${itemsList}
 
-*Total:* R$ ${total.toFixed(2).replace('.', ',')}
+*Total:* R$ ${validTotal.toFixed(2).replace('.', ',')}
 
 📍 Em breve você receberá atualizações sobre o status da entrega.
 

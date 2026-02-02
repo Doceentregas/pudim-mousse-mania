@@ -6,11 +6,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuthContext } from '@/contexts/AuthContext';
 
 interface Product {
   id: string;
@@ -26,6 +27,7 @@ const DEFAULT_CATEGORIES = ['pudim', 'mousse'];
 
 const AdminProducts = () => {
   const navigate = useNavigate();
+  const { user, isAdmin, loading: authLoading } = useAuthContext();
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<string[]>(DEFAULT_CATEGORIES);
   const [loading, setLoading] = useState(true);
@@ -44,10 +46,11 @@ const AdminProducts = () => {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
+  // Check admin authentication via Supabase
   useEffect(() => {
-    // Check admin authentication
-    const isAdmin = sessionStorage.getItem('admin_authenticated');
-    if (!isAdmin) {
+    if (authLoading) return;
+    
+    if (!user || !isAdmin) {
       navigate('/admin-login');
       return;
     }
@@ -59,7 +62,7 @@ const AdminProducts = () => {
     }
 
     fetchProducts();
-  }, [navigate]);
+  }, [user, isAdmin, authLoading, navigate]);
 
   const addCategory = () => {
     if (!newCategory.trim()) return;
@@ -88,8 +91,7 @@ const AdminProducts = () => {
 
   const fetchProducts = async () => {
     try {
-      // Use 'as any' to bypass type check since table was just created
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from('products')
         .select('*')
         .order('created_at', { ascending: false });
@@ -190,7 +192,7 @@ const AdminProducts = () => {
 
       if (editingProduct) {
         // Update existing product
-        const { error } = await (supabase as any)
+        const { error } = await supabase
           .from('products')
           .update(productData)
           .eq('id', editingProduct.id);
@@ -202,7 +204,7 @@ const AdminProducts = () => {
         });
       } else {
         // Create new product
-        const { error } = await (supabase as any)
+        const { error } = await supabase
           .from('products')
           .insert([productData]);
 
@@ -220,6 +222,7 @@ const AdminProducts = () => {
       console.error('Error saving product:', error);
       toast({
         title: "Erro ao salvar produto",
+        description: "Verifique se você tem permissão de administrador.",
         variant: "destructive",
       });
     } finally {
@@ -231,7 +234,7 @@ const AdminProducts = () => {
     if (!confirm('Tem certeza que deseja excluir este produto?')) return;
 
     try {
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from('products')
         .delete()
         .eq('id', productId);
@@ -251,7 +254,7 @@ const AdminProducts = () => {
     }
   };
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <Layout>
         <div className="container px-4 py-8">
@@ -261,6 +264,10 @@ const AdminProducts = () => {
         </div>
       </Layout>
     );
+  }
+
+  if (!isAdmin) {
+    return null;
   }
 
   return (
@@ -501,24 +508,20 @@ const AdminProducts = () => {
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
-                      <Package className="h-12 w-12 text-muted-foreground/50" />
+                      <Package className="h-12 w-12 text-muted-foreground" />
                     </div>
                   )}
                 </div>
-                <CardHeader className="pb-2">
-                  <div className="flex items-start justify-between gap-2">
+                <CardContent className="p-4">
+                  <div className="flex items-start justify-between mb-2">
                     <div>
-                      <CardTitle className="text-lg">{product.name}</CardTitle>
-                      <span className="text-xs text-muted-foreground capitalize">
-                        {product.category}
-                      </span>
+                      <h3 className="font-medium">{product.name}</h3>
+                      <p className="text-sm text-muted-foreground capitalize">{product.category}</p>
                     </div>
-                    <span className="text-lg font-bold text-primary">
-                      R$ {product.price.toFixed(2)}
-                    </span>
+                    <p className="font-bold text-primary">
+                      R$ {product.price.toFixed(2).replace('.', ',')}
+                    </p>
                   </div>
-                </CardHeader>
-                <CardContent>
                   <p className="text-sm text-muted-foreground line-clamp-2 mb-4">
                     {product.description}
                   </p>
@@ -529,12 +532,13 @@ const AdminProducts = () => {
                       className="flex-1"
                       onClick={() => openDialog(product)}
                     >
-                      <Pencil className="h-4 w-4 mr-2" />
+                      <Pencil className="h-4 w-4 mr-1" />
                       Editar
                     </Button>
                     <Button
-                      variant="destructive"
+                      variant="outline"
                       size="sm"
+                      className="text-destructive hover:text-destructive"
                       onClick={() => handleDelete(product.id)}
                     >
                       <Trash2 className="h-4 w-4" />

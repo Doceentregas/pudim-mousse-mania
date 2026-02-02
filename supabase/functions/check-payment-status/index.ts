@@ -30,10 +30,19 @@ serve(async (req) => {
       );
     }
 
+    // Validate UUID format for orderId to prevent injection
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(orderId)) {
+      return new Response(
+        JSON.stringify({ error: 'Formato de orderId inválido' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Get order from database
     const { data: order, error: orderError } = await supabase
       .from('orders')
-      .select('*')
+      .select('id, payment_id, payment_status, status')
       .eq('id', orderId)
       .single();
 
@@ -88,17 +97,18 @@ serve(async (req) => {
           .eq('id', orderId);
       }
 
+      // Return only non-sensitive status information
       return new Response(
         JSON.stringify({
           orderId: order.id,
           paymentStatus,
           orderStatus,
-          mpStatus: paymentData.status,
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
+    // Return only non-sensitive status information
     return new Response(
       JSON.stringify({
         orderId: order.id,

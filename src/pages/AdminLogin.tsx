@@ -6,24 +6,22 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/hooks/use-toast';
-
-const ADMIN_ID = '0808';
-const ADMIN_PASSWORD = '7155';
+import { supabase } from '@/integrations/supabase/client';
 
 const AdminLogin = () => {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [accessId, setAccessId] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!accessId || !password) {
+    if (!email || !password) {
       toast({
         title: "Campos obrigatórios",
-        description: "Preencha o ID de acesso e a senha",
+        description: "Preencha o email e a senha",
         variant: "destructive",
       });
       return;
@@ -31,25 +29,65 @@ const AdminLogin = () => {
 
     setIsLoading(true);
 
-    // Simulate a small delay
-    await new Promise(resolve => setTimeout(resolve, 500));
+    try {
+      // Sign in with Supabase Auth
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-    if (accessId === ADMIN_ID && password === ADMIN_PASSWORD) {
-      // Store admin session in sessionStorage (clears when browser closes)
-      sessionStorage.setItem('admin_authenticated', 'true');
+      if (error) {
+        throw error;
+      }
+
+      if (!data.user) {
+        throw new Error('Usuário não encontrado');
+      }
+
+      // Check if user has admin role using RLS-protected query
+      const { data: roleData, error: roleError } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', data.user.id)
+        .eq('role', 'admin')
+        .maybeSingle();
+
+      if (roleError) {
+        console.error('Error checking admin role:', roleError);
+        // Sign out if role check fails
+        await supabase.auth.signOut();
+        throw new Error('Erro ao verificar permissões');
+      }
+
+      if (!roleData) {
+        // User is authenticated but not an admin
+        await supabase.auth.signOut();
+        toast({
+          title: "Acesso negado",
+          description: "Você não tem permissão de administrador",
+          variant: "destructive",
+        });
+        setIsLoading(false);
+        return;
+      }
+
       toast({
         title: "Acesso autorizado! 🔐",
       });
       navigate('/admin/pedidos');
-    } else {
+    } catch (error: unknown) {
+      console.error('Login error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Erro ao fazer login';
       toast({
-        title: "Acesso negado",
-        description: "ID ou senha incorretos",
+        title: "Erro de autenticação",
+        description: errorMessage === 'Invalid login credentials' 
+          ? 'Email ou senha incorretos' 
+          : errorMessage,
         variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
     }
-
-    setIsLoading(false);
   };
 
   return (
@@ -73,12 +111,14 @@ const AdminLogin = () => {
           <div className="p-6 rounded-2xl bg-card border border-border">
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="accessId">ID de Acesso</Label>
+                <Label htmlFor="email">Email</Label>
                 <Input 
-                  id="accessId" 
-                  placeholder="Digite o ID" 
-                  value={accessId}
-                  onChange={(e) => setAccessId(e.target.value)}
+                  id="email" 
+                  type="email"
+                  placeholder="admin@exemplo.com" 
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  autoComplete="email"
                 />
               </div>
 
@@ -91,6 +131,7 @@ const AdminLogin = () => {
                     placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
+                    autoComplete="current-password"
                   />
                   <button
                     type="button"
@@ -117,6 +158,10 @@ const AdminLogin = () => {
               </Button>
             </form>
           </div>
+
+          <p className="text-center text-sm text-muted-foreground mt-4">
+            Para obter acesso de administrador, entre em contato com o suporte.
+          </p>
         </div>
       </div>
     </Layout>

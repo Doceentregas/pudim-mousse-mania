@@ -8,7 +8,7 @@ import {
 import { Layout } from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
   Select,
@@ -26,6 +26,7 @@ import {
 
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { useAuthContext } from '@/contexts/AuthContext';
 
 interface OrderItem {
   productId: string;
@@ -84,29 +85,26 @@ const PAYMENT_STATUS_CONFIG: Record<string, { label: string; color: string }> = 
 
 const AdminOrders = () => {
   const navigate = useNavigate();
+  const { user, isAdmin, loading: authLoading, signOut } = useAuthContext();
   const [orders, setOrders] = useState<Order[]>([]);
   const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
   const [isLoadingOrders, setIsLoadingOrders] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  // Check admin authentication via session storage
+  // Check admin authentication via Supabase
   useEffect(() => {
-    const isAdminAuth = sessionStorage.getItem('admin_authenticated');
-    if (!isAdminAuth) {
-      // Ensure we don't get stuck in a loader if navigation is blocked for any reason
-      setIsLoadingOrders(false);
+    if (authLoading) return;
+    
+    if (!user || !isAdmin) {
       navigate('/admin-login');
-    } else {
-      setIsAuthenticated(true);
     }
-  }, [navigate]);
+  }, [user, isAdmin, authLoading, navigate]);
 
   // Fetch orders
   useEffect(() => {
-    if (!isAuthenticated) return;
+    if (authLoading || !user || !isAdmin) return;
 
     setIsLoadingOrders(true);
 
@@ -176,7 +174,7 @@ const AdminOrders = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [isAuthenticated]);
+  }, [user, isAdmin, authLoading]);
 
   // Filter orders
   useEffect(() => {
@@ -218,7 +216,6 @@ const AdminOrders = () => {
   };
 
   const sendWhatsAppConfirmation = (order: Order) => {
-    // Use the customer's phone from the order
     if (!order.customer_phone) {
       toast({
         title: "Telefone não encontrado",
@@ -228,13 +225,11 @@ const AdminOrders = () => {
       return;
     }
 
-    // Format phone number (remove non-digits and ensure country code)
     let phone = order.customer_phone.replace(/\D/g, '');
     if (!phone.startsWith('55')) {
       phone = '55' + phone;
     }
 
-    // Build message
     let message = `Olá ${order.customer_name || 'Cliente'}! 🍮\n\n`;
     message += `Seu pedido #${order.id.slice(0, 8).toUpperCase()} está sendo processado.\n\n`;
     message += `*Itens:*\n`;
@@ -262,8 +257,8 @@ const AdminOrders = () => {
     });
   };
 
-  const handleLogout = () => {
-    sessionStorage.removeItem('admin_authenticated');
+  const handleLogout = async () => {
+    await signOut();
     toast({ title: "Sessão encerrada" });
     navigate('/admin-login');
   };
@@ -277,7 +272,7 @@ const AdminOrders = () => {
     .reduce((sum, o) => sum + o.total, 0);
   const pendingOrders = orders.filter(o => o.status === 'pending' || o.status === 'confirmed').length;
 
-  if (!isAuthenticated || isLoadingOrders) {
+  if (authLoading || (!user && !authLoading) || isLoadingOrders) {
     return (
       <Layout>
         <div className="flex items-center justify-center min-h-screen">
@@ -285,6 +280,10 @@ const AdminOrders = () => {
         </div>
       </Layout>
     );
+  }
+
+  if (!isAdmin) {
+    return null;
   }
 
   return (
@@ -483,10 +482,12 @@ const AdminOrders = () => {
                       <User className="h-4 w-4 text-muted-foreground" />
                       <span>{selectedOrder.customer_name}</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Phone className="h-4 w-4 text-muted-foreground" />
-                      <span>{selectedOrder.customer_phone}</span>
-                    </div>
+                    {selectedOrder.customer_phone && (
+                      <div className="flex items-center gap-2">
+                        <Phone className="h-4 w-4 text-muted-foreground" />
+                        <span>{selectedOrder.customer_phone}</span>
+                      </div>
+                    )}
                     {selectedOrder.delivery_address && (
                       <div className="flex items-start gap-2">
                         <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
@@ -494,7 +495,9 @@ const AdminOrders = () => {
                           {selectedOrder.delivery_address.street}, {selectedOrder.delivery_address.number}
                           {selectedOrder.delivery_address.complement && ` - ${selectedOrder.delivery_address.complement}`}
                           <br />
-                          {selectedOrder.delivery_address.neighborhood}, {selectedOrder.delivery_address.city}
+                          {selectedOrder.delivery_address.neighborhood} - {selectedOrder.delivery_address.city}
+                          <br />
+                          CEP: {selectedOrder.delivery_address.cep}
                         </span>
                       </div>
                     )}
@@ -502,71 +505,67 @@ const AdminOrders = () => {
 
                   {/* Items */}
                   <div>
-                    <h4 className="font-medium mb-2">Itens</h4>
+                    <h4 className="font-medium mb-2">Itens do Pedido</h4>
                     <div className="space-y-2">
                       {selectedOrder.items.map((item, idx) => (
                         <div key={idx} className="flex justify-between text-sm">
                           <span>
                             {item.quantity}x {item.name}
-                            {item.size && <span className="text-muted-foreground"> ({item.size})</span>}
+                            {item.size && ` (${item.size})`}
                           </span>
-                          <span>R$ {item.price.toFixed(2).replace('.', ',')}</span>
+                          <span>R$ {(item.price * item.quantity).toFixed(2).replace('.', ',')}</span>
                         </div>
                       ))}
                     </div>
                   </div>
 
-                  {/* Total */}
-                  <div className="border-t pt-3 space-y-1 text-sm">
-                    <div className="flex justify-between">
+                  {/* Totals */}
+                  <div className="border-t pt-4 space-y-1">
+                    <div className="flex justify-between text-sm">
                       <span>Subtotal</span>
                       <span>R$ {selectedOrder.subtotal.toFixed(2).replace('.', ',')}</span>
                     </div>
-                    <div className="flex justify-between">
-                      <span>Entrega</span>
+                    <div className="flex justify-between text-sm">
+                      <span>Frete</span>
                       <span>R$ {selectedOrder.delivery_fee.toFixed(2).replace('.', ',')}</span>
                     </div>
                     {selectedOrder.discount > 0 && (
-                      <div className="flex justify-between text-primary">
+                      <div className="flex justify-between text-sm text-green-600">
                         <span>Desconto</span>
                         <span>- R$ {selectedOrder.discount.toFixed(2).replace('.', ',')}</span>
                       </div>
                     )}
                     <div className="flex justify-between font-bold text-lg pt-2">
                       <span>Total</span>
-                      <span className="text-primary">
-                        R$ {selectedOrder.total.toFixed(2).replace('.', ',')}
-                      </span>
+                      <span className="text-primary">R$ {selectedOrder.total.toFixed(2).replace('.', ',')}</span>
                     </div>
                   </div>
 
                   {/* Actions */}
-                  <div className="space-y-2">
-                    <h4 className="font-medium">Atualizar Status</h4>
-                    <div className="grid grid-cols-3 gap-2">
+                  <div className="space-y-3 pt-4">
+                    <div className="flex gap-2 flex-wrap">
                       {Object.entries(STATUS_CONFIG).map(([key, { label, color }]) => (
                         <Button
                           key={key}
-                          variant={selectedOrder.status === key ? 'default' : 'outline'}
+                          variant={selectedOrder.status === key ? "default" : "outline"}
                           size="sm"
                           onClick={() => updateOrderStatus(selectedOrder.id, key)}
-                          className="text-xs"
+                          className={selectedOrder.status === key ? color : ''}
                         >
                           {label}
                         </Button>
                       ))}
                     </div>
+                    
+                    <Button 
+                      variant="outline" 
+                      className="w-full"
+                      onClick={() => sendWhatsAppConfirmation(selectedOrder)}
+                    >
+                      <Phone className="h-4 w-4 mr-2" />
+                      Enviar WhatsApp
+                    </Button>
                   </div>
-
-                  {/* WhatsApp */}
-                  <Button 
-                    className="w-full"
-                    variant="outline"
-                    onClick={() => sendWhatsAppConfirmation(selectedOrder)}
-                  >
-                    <Phone className="h-4 w-4 mr-2" />
-                    Enviar WhatsApp
-                  </Button>
                 </div>
               </>
             )}
