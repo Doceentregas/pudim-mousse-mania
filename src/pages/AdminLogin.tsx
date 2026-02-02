@@ -45,36 +45,40 @@ const AdminLogin = () => {
       }
 
       // Check if user has admin role using RLS-protected query
-      const { data: roleData, error: roleError } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', data.user.id)
-        .eq('role', 'admin')
-        .maybeSingle();
+      try {
+        const { data: roleData, error: roleError } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', data.user.id)
+          .eq('role', 'admin')
+          .maybeSingle();
 
-      if (roleError) {
-        console.error('Error checking admin role:', roleError);
-        // Sign out if role check fails
+        if (roleError) {
+          console.error('Error checking admin role:', roleError);
+          await supabase.auth.signOut();
+          throw new Error('Erro ao verificar permissões');
+        }
+
+        if (!roleData) {
+          await supabase.auth.signOut();
+          toast({
+            title: "Acesso negado",
+            description: "Você não tem permissão de administrador",
+            variant: "destructive",
+          });
+          setIsLoading(false);
+          return;
+        }
+
+        toast({
+          title: "Acesso autorizado! 🔐",
+        });
+        navigate('/admin/pedidos');
+      } catch (roleCheckError) {
+        console.error('Role check failed:', roleCheckError);
         await supabase.auth.signOut();
         throw new Error('Erro ao verificar permissões');
       }
-
-      if (!roleData) {
-        // User is authenticated but not an admin
-        await supabase.auth.signOut();
-        toast({
-          title: "Acesso negado",
-          description: "Você não tem permissão de administrador",
-          variant: "destructive",
-        });
-        setIsLoading(false);
-        return;
-      }
-
-      toast({
-        title: "Acesso autorizado! 🔐",
-      });
-      navigate('/admin/pedidos');
     } catch (error: unknown) {
       console.error('Login error:', error);
       const errorMessage = error instanceof Error ? error.message : 'Erro ao fazer login';
