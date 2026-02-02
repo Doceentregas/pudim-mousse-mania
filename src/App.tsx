@@ -11,6 +11,7 @@ import ProductDetail from "./pages/ProductDetail";
 import Carrinho from "./pages/Carrinho";
 import Checkout from "./pages/Checkout";
 import Login from "./pages/Login";
+import Perfil from "./pages/Perfil";
 import AdminLogin from "./pages/AdminLogin";
 import AdminOrders from "./pages/admin/Orders";
 import AdminProducts from "./pages/admin/Products";
@@ -34,6 +35,7 @@ const App = () => (
               <Route path="/carrinho" element={<Carrinho />} />
               <Route path="/checkout" element={<Checkout />} />
               <Route path="/login" element={<Login />} />
+              <Route path="/perfil" element={<Perfil />} />
               <Route path="/admin-login" element={<AdminLogin />} />
               <Route path="/admin/pedidos" element={<AdminOrders />} />
               <Route path="/admin/produtos" element={<AdminProducts />} />
