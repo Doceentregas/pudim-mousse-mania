@@ -23,7 +23,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { useAuthContext } from '@/contexts/AuthContext';
+
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
@@ -84,26 +84,28 @@ const PAYMENT_STATUS_CONFIG: Record<string, { label: string; color: string }> = 
 
 const AdminOrders = () => {
   const navigate = useNavigate();
-  const { loading } = useAuthContext();
   const [orders, setOrders] = useState<Order[]>([]);
   const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
   const [isLoadingOrders, setIsLoadingOrders] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   // Check admin authentication via session storage
   useEffect(() => {
     const isAdminAuth = sessionStorage.getItem('admin_authenticated');
     if (!isAdminAuth) {
       navigate('/admin-login');
+    } else {
+      setIsAuthenticated(true);
     }
   }, [navigate]);
 
   // Fetch orders
   useEffect(() => {
-    const isAdminAuth = sessionStorage.getItem('admin_authenticated');
-    if (!isAdminAuth) return;
+    if (!isAuthenticated) return;
+
 
     const fetchOrders = async () => {
       const { data, error } = await supabase
@@ -256,7 +258,7 @@ const AdminOrders = () => {
     .reduce((sum, o) => sum + o.total, 0);
   const pendingOrders = orders.filter(o => o.status === 'pending' || o.status === 'confirmed').length;
 
-  if (loading) {
+  if (!isAuthenticated || isLoadingOrders) {
     return (
       <Layout>
         <div className="flex items-center justify-center min-h-screen">
