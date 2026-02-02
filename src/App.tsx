@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { CartProvider } from "@/contexts/CartContext";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { InstallPrompt } from "@/components/pwa/InstallPrompt";
 import Index from "./pages/Index";
 import Cardapio from "./pages/Cardapio";
 import ProductDetail from "./pages/ProductDetail";
@@ -17,6 +18,7 @@ import AdminOrders from "./pages/admin/Orders";
 import AdminProducts from "./pages/admin/Products";
 import AdminSettings from "./pages/admin/Settings";
 import RecuperarSenha from "./pages/RecuperarSenha";
+import Instalar from "./pages/Instalar";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,6 +30,7 @@ const App = () => (
         <TooltipProvider>
           <Toaster />
           <Sonner />
+          <InstallPrompt />
           <BrowserRouter>
             <Routes>
               <Route path="/" element={<Index />} />
@@ -37,6 +40,7 @@ const App = () => (
               <Route path="/checkout" element={<Checkout />} />
               <Route path="/login" element={<Login />} />
               <Route path="/perfil" element={<Perfil />} />
+              <Route path="/instalar" element={<Instalar />} />
               <Route path="/admin-login" element={<AdminLogin />} />
               <Route path="/admin/pedidos" element={<AdminOrders />} />
               <Route path="/admin/produtos" element={<AdminProducts />} />
