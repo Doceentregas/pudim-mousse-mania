@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Star, Heart, Minus, Plus, ShoppingCart, Clock, Truck } from 'lucide-react';
+import { ArrowLeft, Star, Heart, Minus, Plus, ShoppingCart, Clock, Truck, Loader2 } from 'lucide-react';
 import { Layout } from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -8,9 +8,21 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { useCartContext } from '@/contexts/CartContext';
-import { getProductById, products } from '@/data/products';
+import { getProductById, products as staticProducts } from '@/data/products';
 import { ProductCard } from '@/components/product/ProductCard';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import type { Product } from '@/types/product';
+
+interface DBProduct {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  category: string;
+  image_url: string | null;
+  is_active: boolean;
+}
 
 const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -18,11 +30,99 @@ const ProductDetail = () => {
   const { addItem } = useCartContext();
   const { toast } = useToast();
 
-  const product = getProductById(id || '');
-
+  const [product, setProduct] = useState<Product | null>(null);
+  const [allProducts, setAllProducts] = useState<Product[]>(staticProducts);
+  const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
-  const [selectedSize, setSelectedSize] = useState(product?.sizes?.[0]?.name || '');
+  const [selectedSize, setSelectedSize] = useState('');
   const [selectedExtras, setSelectedExtras] = useState<string[]>([]);
+
+  // Fetch product from DB or fallback to static
+  useEffect(() => {
+    const fetchProduct = async () => {
+      if (!id) {
+        setLoading(false);
+        return;
+      }
+
+      // First try static products (for static IDs like '1', '2', etc.)
+      const staticProduct = getProductById(id);
+      if (staticProduct) {
+        setProduct(staticProduct);
+        setSelectedSize(staticProduct.sizes?.[0]?.name || '');
+        setLoading(false);
+        return;
+      }
+
+      // Try fetching from database (for UUID-based IDs)
+      try {
+        const { data, error } = await (supabase as any)
+          .from('products')
+          .select('*')
+          .eq('id', id)
+          .eq('is_active', true)
+          .single();
+
+        if (error) throw error;
+
+        if (data) {
+          const dbProduct: Product = {
+            id: data.id,
+            name: data.name,
+            description: data.description,
+            price: data.price,
+            image: data.image_url || '/placeholder.svg',
+            category: data.category as 'pudim' | 'mousse',
+            rating: 4.8,
+            reviews: Math.floor(Math.random() * 500) + 100,
+          };
+          setProduct(dbProduct);
+        }
+      } catch (error) {
+        console.error('Error fetching product:', error);
+      }
+      setLoading(false);
+    };
+
+    // Also fetch all products for related items
+    const fetchAllProducts = async () => {
+      try {
+        const { data, error } = await (supabase as any)
+          .from('products')
+          .select('*')
+          .eq('is_active', true);
+
+        if (!error && data && data.length > 0) {
+          const dbProducts: Product[] = data.map((p: DBProduct) => ({
+            id: p.id,
+            name: p.name,
+            description: p.description,
+            price: p.price,
+            image: p.image_url || '/placeholder.svg',
+            category: p.category as 'pudim' | 'mousse',
+            rating: 4.8,
+            reviews: Math.floor(Math.random() * 500) + 100,
+          }));
+          setAllProducts([...staticProducts, ...dbProducts]);
+        }
+      } catch (error) {
+        console.error('Error fetching all products:', error);
+      }
+    };
+
+    fetchProduct();
+    fetchAllProducts();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center min-h-[50vh]">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </Layout>
+    );
+  }
 
   if (!product) {
     return (
@@ -62,7 +162,7 @@ const ProductDetail = () => {
     );
   };
 
-  const relatedProducts = products
+  const relatedProducts = allProducts
     .filter(p => p.category === product.category && p.id !== product.id)
     .slice(0, 4);
 

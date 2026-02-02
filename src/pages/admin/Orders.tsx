@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { 
   Package, Clock, CheckCircle2, Truck, XCircle, 
   RefreshCw, Search, Filter, ChevronDown, Phone,
-  User, MapPin, Calendar, DollarSign
+  User, MapPin, Calendar, DollarSign, LogOut, Settings
 } from 'lucide-react';
 import { Layout } from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
@@ -271,6 +271,12 @@ const AdminOrders = () => {
     );
   }
 
+  const handleLogout = () => {
+    sessionStorage.removeItem('admin_authenticated');
+    toast({ title: "Sessão encerrada" });
+    navigate('/admin-login');
+  };
+
   return (
     <Layout>
       <div className="container px-4 py-6">
@@ -278,10 +284,20 @@ const AdminOrders = () => {
           <h1 className="font-serif text-2xl font-bold text-foreground">
             Painel Administrativo
           </h1>
-          <Button variant="outline" onClick={() => navigate('/admin/produtos')}>
-            <Package className="h-4 w-4 mr-2" />
-            Gerenciar Produtos
-          </Button>
+          <div className="flex gap-2 flex-wrap">
+            <Button variant="outline" onClick={() => navigate('/admin/produtos')}>
+              <Package className="h-4 w-4 mr-2" />
+              Produtos
+            </Button>
+            <Button variant="outline" onClick={() => navigate('/admin/configuracoes')}>
+              <Settings className="h-4 w-4 mr-2" />
+              Frete
+            </Button>
+            <Button variant="destructive" onClick={handleLogout}>
+              <LogOut className="h-4 w-4 mr-2" />
+              Sair
+            </Button>
+          </div>
         </div>
 
         {/* Stats Cards */}
