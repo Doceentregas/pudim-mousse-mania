@@ -15,12 +15,6 @@ export interface Address {
   state: string;
 }
 
-interface DeliveryZone {
-  id: string;
-  name: string;
-  cities: string[];
-  fee: number;
-}
 
 interface AddressFormProps {
   address: Address;
@@ -29,26 +23,11 @@ interface AddressFormProps {
   onDeliveryFeeChange: (fee: number) => void;
 }
 
-const calculateDeliveryFee = (city: string): number => {
-  // Load zones from localStorage
-  const savedZones = localStorage.getItem('delivery_zones_v2');
-  if (!savedZones) {
-    return 19.90; // Default fee
-  }
+// Fixed delivery fee of R$ 4.00
+const FIXED_DELIVERY_FEE = 4.00;
 
-  const zones: DeliveryZone[] = JSON.parse(savedZones);
-  const normalizedCity = city.trim().toLowerCase();
-
-  for (const zone of zones) {
-    const cityMatch = zone.cities.some(c => 
-      c.toLowerCase().trim() === normalizedCity
-    );
-    if (cityMatch) {
-      return zone.fee;
-    }
-  }
-
-  return 19.90; // Default fee for unconfigured cities
+const calculateDeliveryFee = (_city: string): number => {
+  return FIXED_DELIVERY_FEE;
 };
 
 export function AddressForm({ address, onAddressChange, deliveryFee, onDeliveryFeeChange }: AddressFormProps) {

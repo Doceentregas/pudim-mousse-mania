@@ -22,13 +22,18 @@ interface Product {
   is_active: boolean;
 }
 
+const DEFAULT_CATEGORIES = ['pudim', 'mousse'];
+
 const AdminProducts = () => {
   const navigate = useNavigate();
   const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<string[]>(DEFAULT_CATEGORIES);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [newCategory, setNewCategory] = useState('');
 
   // Form state
   const [name, setName] = useState('');
@@ -47,8 +52,39 @@ const AdminProducts = () => {
       return;
     }
 
+    // Load categories from localStorage
+    const savedCategories = localStorage.getItem('product_categories');
+    if (savedCategories) {
+      setCategories(JSON.parse(savedCategories));
+    }
+
     fetchProducts();
   }, [navigate]);
+
+  const addCategory = () => {
+    if (!newCategory.trim()) return;
+    const normalized = newCategory.trim().toLowerCase();
+    if (categories.includes(normalized)) {
+      toast({ title: "Categoria já existe", variant: "destructive" });
+      return;
+    }
+    const updated = [...categories, normalized];
+    setCategories(updated);
+    localStorage.setItem('product_categories', JSON.stringify(updated));
+    setNewCategory('');
+    toast({ title: "Categoria adicionada!" });
+  };
+
+  const removeCategory = (cat: string) => {
+    if (categories.length <= 1) {
+      toast({ title: "Mínimo 1 categoria", variant: "destructive" });
+      return;
+    }
+    const updated = categories.filter(c => c !== cat);
+    setCategories(updated);
+    localStorage.setItem('product_categories', JSON.stringify(updated));
+    toast({ title: "Categoria removida" });
+  };
 
   const fetchProducts = async () => {
     try {
@@ -241,10 +277,50 @@ const AdminProducts = () => {
             </p>
           </div>
           
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <Button variant="outline" onClick={() => navigate('/admin/pedidos')}>
               Ver Pedidos
             </Button>
+            <Dialog open={isCategoryDialogOpen} onOpenChange={setIsCategoryDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline">
+                  Categorias
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-sm">
+                <DialogHeader>
+                  <DialogTitle>Gerenciar Categorias</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Nova categoria"
+                      value={newCategory}
+                      onChange={(e) => setNewCategory(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addCategory())}
+                    />
+                    <Button onClick={addCategory}>
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <div className="space-y-2">
+                    {categories.map((cat) => (
+                      <div key={cat} className="flex items-center justify-between p-2 bg-muted rounded">
+                        <span className="capitalize">{cat}</span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeCategory(cat)}
+                          className="text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
                 <Button onClick={() => openDialog()}>
@@ -356,8 +432,11 @@ const AdminProducts = () => {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="pudim">Pudim</SelectItem>
-                        <SelectItem value="mousse">Mousse</SelectItem>
+                        {categories.map((cat) => (
+                          <SelectItem key={cat} value={cat}>
+                            {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
