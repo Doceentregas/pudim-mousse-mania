@@ -96,6 +96,8 @@ const AdminOrders = () => {
   useEffect(() => {
     const isAdminAuth = sessionStorage.getItem('admin_authenticated');
     if (!isAdminAuth) {
+      // Ensure we don't get stuck in a loader if navigation is blocked for any reason
+      setIsLoadingOrders(false);
       navigate('/admin-login');
     } else {
       setIsAuthenticated(true);
@@ -106,6 +108,7 @@ const AdminOrders = () => {
   useEffect(() => {
     if (!isAuthenticated) return;
 
+    setIsLoadingOrders(true);
 
     const fetchOrders = async () => {
       const { data, error } = await supabase
@@ -173,7 +176,7 @@ const AdminOrders = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [isAuthenticated]);
 
   // Filter orders
   useEffect(() => {
