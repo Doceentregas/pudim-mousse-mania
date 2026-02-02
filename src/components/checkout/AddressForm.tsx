@@ -15,6 +15,13 @@ export interface Address {
   state: string;
 }
 
+interface DeliveryZone {
+  id: string;
+  name: string;
+  cities: string[];
+  fee: number;
+}
+
 interface AddressFormProps {
   address: Address;
   onAddressChange: (address: Address) => void;
@@ -22,32 +29,26 @@ interface AddressFormProps {
   onDeliveryFeeChange: (fee: number) => void;
 }
 
-// Areas de entrega com taxas
-const DELIVERY_ZONES = [
-  { cities: ['São Paulo'], neighborhoods: ['Centro', 'Consolação', 'Bela Vista', 'Liberdade', 'República'], fee: 5.90 },
-  { cities: ['São Paulo'], neighborhoods: ['Pinheiros', 'Vila Madalena', 'Perdizes', 'Higienópolis', 'Pacaembu'], fee: 7.90 },
-  { cities: ['São Paulo'], neighborhoods: [], fee: 12.90 }, // Resto de SP
-  { cities: ['Guarulhos', 'Osasco', 'Santo André', 'São Bernardo do Campo'], neighborhoods: [], fee: 15.90 },
-];
+const calculateDeliveryFee = (city: string): number => {
+  // Load zones from localStorage
+  const savedZones = localStorage.getItem('delivery_zones_v2');
+  if (!savedZones) {
+    return 19.90; // Default fee
+  }
 
-const calculateDeliveryFee = (city: string, neighborhood: string): number => {
+  const zones: DeliveryZone[] = JSON.parse(savedZones);
   const normalizedCity = city.trim().toLowerCase();
-  const normalizedNeighborhood = neighborhood.trim().toLowerCase();
 
-  for (const zone of DELIVERY_ZONES) {
-    const cityMatch = zone.cities.some(c => c.toLowerCase() === normalizedCity);
+  for (const zone of zones) {
+    const cityMatch = zone.cities.some(c => 
+      c.toLowerCase().trim() === normalizedCity
+    );
     if (cityMatch) {
-      if (zone.neighborhoods.length === 0) {
-        return zone.fee;
-      }
-      const neighborhoodMatch = zone.neighborhoods.some(n => n.toLowerCase() === normalizedNeighborhood);
-      if (neighborhoodMatch) {
-        return zone.fee;
-      }
+      return zone.fee;
     }
   }
 
-  return 19.90; // Taxa padrão para outras regiões
+  return 19.90; // Default fee for unconfigured cities
 };
 
 export function AddressForm({ address, onAddressChange, deliveryFee, onDeliveryFeeChange }: AddressFormProps) {
@@ -84,13 +85,13 @@ export function AddressForm({ address, onAddressChange, deliveryFee, onDeliveryF
 
         onAddressChange(newAddress);
 
-        // Calculate delivery fee
-        const fee = calculateDeliveryFee(data.localidade, data.bairro);
+        // Calculate delivery fee based on city
+        const fee = calculateDeliveryFee(data.localidade);
         onDeliveryFeeChange(fee);
 
         toast({
           title: "Endereço encontrado!",
-          description: `Taxa de entrega: R$ ${fee.toFixed(2).replace('.', ',')}`,
+          description: `Taxa de entrega para ${data.localidade}: R$ ${fee.toFixed(2).replace('.', ',')}`,
         });
 
       } catch (error) {
@@ -196,10 +197,14 @@ export function AddressForm({ address, onAddressChange, deliveryFee, onDeliveryF
           <Input
             id="city"
             value={address.city}
-            onChange={(e) => onAddressChange({ ...address, city: e.target.value })}
+            onChange={(e) => {
+              const newCity = e.target.value;
+              onAddressChange({ ...address, city: newCity });
+              // Recalculate delivery fee when city changes
+              const fee = calculateDeliveryFee(newCity);
+              onDeliveryFeeChange(fee);
+            }}
             placeholder="Cidade"
-            readOnly
-            className="bg-muted"
           />
         </div>
         <div>
@@ -209,16 +214,14 @@ export function AddressForm({ address, onAddressChange, deliveryFee, onDeliveryF
             value={address.state}
             onChange={(e) => onAddressChange({ ...address, state: e.target.value })}
             placeholder="UF"
-            readOnly
-            className="bg-muted"
           />
         </div>
       </div>
 
-      {deliveryFee > 0 && (
+      {deliveryFee > 0 && address.city && (
         <div className="p-3 bg-muted rounded-lg text-sm">
           <p className="text-muted-foreground">
-            Taxa de entrega para <strong>{address.neighborhood}, {address.city}</strong>:
+            Taxa de entrega para <strong>{address.city}</strong>:
           </p>
           <p className="text-lg font-bold text-primary">
             R$ {deliveryFee.toFixed(2).replace('.', ',')}
