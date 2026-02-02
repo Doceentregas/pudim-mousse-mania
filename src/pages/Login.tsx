@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, ArrowRight, Loader2 } from 'lucide-react';
 import { Layout } from '@/components/layout/Layout';
@@ -11,7 +11,7 @@ import { toast } from '@/hooks/use-toast';
 
 const Login = () => {
   const navigate = useNavigate();
-  const { signIn, signUp, user, isAdmin } = useAuthContext();
+  const { signIn, signUp, user, isAdmin, loading } = useAuthContext();
   
   const [showPassword, setShowPassword] = useState(false);
   const [isLogin, setIsLogin] = useState(true);
@@ -22,14 +22,18 @@ const Login = () => {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
 
-  // If already logged in, redirect
-  if (user) {
-    if (isAdmin) {
-      navigate('/admin/pedidos');
-    } else {
-      navigate('/');
+  // Redirect if already logged in (in useEffect to avoid render issues)
+  useEffect(() => {
+    if (loading) return;
+    
+    if (user) {
+      if (isAdmin) {
+        navigate('/admin/pedidos', { replace: true });
+      } else {
+        navigate('/', { replace: true });
+      }
     }
-  }
+  }, [user, isAdmin, loading, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -85,6 +89,17 @@ const Login = () => {
       setIsLoading(false);
     }
   };
+
+  // Show loading while checking auth status
+  if (loading) {
+    return (
+      <Layout>
+        <div className="min-h-screen flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
