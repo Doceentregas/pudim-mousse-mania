@@ -52,7 +52,8 @@ const AdminProducts = () => {
 
   const fetchProducts = async () => {
     try {
-      const { data, error } = await supabase
+      // Use 'as any' to bypass type check since table was just created
+      const { data, error } = await (supabase as any)
         .from('products')
         .select('*')
         .order('created_at', { ascending: false });
@@ -153,7 +154,7 @@ const AdminProducts = () => {
 
       if (editingProduct) {
         // Update existing product
-        const { error } = await supabase
+        const { error } = await (supabase as any)
           .from('products')
           .update(productData)
           .eq('id', editingProduct.id);
@@ -165,7 +166,7 @@ const AdminProducts = () => {
         });
       } else {
         // Create new product
-        const { error } = await supabase
+        const { error } = await (supabase as any)
           .from('products')
           .insert([productData]);
 
@@ -194,7 +195,7 @@ const AdminProducts = () => {
     if (!confirm('Tem certeza que deseja excluir este produto?')) return;
 
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('products')
         .delete()
         .eq('id', productId);

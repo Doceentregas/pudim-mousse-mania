@@ -152,7 +152,7 @@ const Login = () => {
 
               {isLogin && (
                 <div className="text-right">
-                  <Link to="/esqueci-senha" className="text-sm text-primary hover:underline">
+                  <Link to="/recuperar-senha" className="text-sm text-primary hover:underline">
                     Esqueci minha senha
                   </Link>
                 </div>
