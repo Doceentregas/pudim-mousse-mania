@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { User, Session } from '@supabase/supabase-js';
 
@@ -9,24 +9,24 @@ export function useAuth() {
   const [isAdmin, setIsAdmin] = useState(false);
   const initialized = useRef(false);
 
-  const checkAdminRole = useCallback(async (userId: string) => {
-    try {
-      const { data: roles } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', userId)
-        .eq('role', 'admin')
-        .maybeSingle();
-      
-      return !!roles;
-    } catch {
-      return false;
-    }
-  }, []);
-
   useEffect(() => {
     if (initialized.current) return;
     initialized.current = true;
+
+    const checkAdminRole = async (userId: string) => {
+      try {
+        const { data: roles } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', userId)
+          .eq('role', 'admin')
+          .maybeSingle();
+        
+        return !!roles;
+      } catch {
+        return false;
+      }
+    };
 
     // Get initial session
     supabase.auth.getSession().then(async ({ data: { session } }) => {
@@ -59,7 +59,7 @@ export function useAuth() {
     );
 
     return () => subscription.unsubscribe();
-  }, [checkAdminRole]);
+  }, []);
 
   const signUp = useCallback(async (email: string, password: string, fullName: string) => {
     const { data, error } = await supabase.auth.signUp({
