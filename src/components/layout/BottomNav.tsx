@@ -16,8 +16,8 @@ export function BottomNav() {
   const { totalItems } = useCartContext();
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden border-t border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="flex items-center justify-around h-16">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden border-t border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 safe-area-inset-bottom">
+      <div className="flex items-center justify-around h-16 pb-safe">
         {navItems.map((item) => {
           const isActive = location.pathname === item.href;
           const Icon = item.icon;

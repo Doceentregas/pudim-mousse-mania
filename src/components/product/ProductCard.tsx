@@ -61,13 +61,13 @@ export function ProductCard({ product, className }: ProductCardProps) {
           <Heart className="h-4 w-4" />
         </button>
 
-        {/* Quick Add Button */}
+        {/* Quick Add Button - visible on mobile, hover on desktop */}
         <Button
           size="icon"
-          className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-2 group-hover:translate-y-0 shadow-lg"
+          className="absolute bottom-3 right-3 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all duration-300 md:translate-y-2 md:group-hover:translate-y-0 shadow-lg h-10 w-10 md:h-9 md:w-9"
           onClick={handleAddToCart}
         >
-          <Plus className="h-4 w-4" />
+          <Plus className="h-5 w-5 md:h-4 md:w-4" />
         </Button>
       </div>
 
