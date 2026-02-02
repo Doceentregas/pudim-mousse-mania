@@ -7,25 +7,25 @@ export function PromoSection() {
     <section className="py-8 md:py-12">
       <div className="container px-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Clube do Pudim */}
+          {/* Encomenda de Pudim e Mousse */}
           <div className="relative overflow-hidden rounded-2xl p-6 md:p-8" style={{ background: 'var(--gradient-hero)' }}>
             <div className="relative z-10 space-y-4">
               <div className="inline-flex p-3 rounded-full bg-primary-foreground/20 backdrop-blur-sm">
                 <Crown className="h-6 w-6 text-primary-foreground" />
               </div>
               <h3 className="font-serif text-2xl md:text-3xl font-bold text-primary-foreground">
-                Clube do Pudim
+                Encomenda de Pudim e Mousse
               </h3>
               <p className="text-primary-foreground/80 max-w-xs">
-                Assine e receba sobremesas exclusivas todo mês com até 40% de desconto!
+                Faça sua encomenda especial para festas e eventos com descontos exclusivos!
               </p>
               <Button 
                 variant="secondary" 
                 className="bg-primary-foreground text-primary hover:bg-primary-foreground/90"
                 asChild
               >
-                <Link to="/clube">
-                  Assinar Agora
+                <Link to="/cardapio">
+                  Fazer Encomenda
                 </Link>
               </Button>
             </div>
