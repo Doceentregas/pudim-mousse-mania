@@ -10,6 +10,8 @@ import { useCartContext } from '@/contexts/CartContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { AddressForm, Address } from '@/components/checkout/AddressForm';
+import { PaymentMethodSelector, PaymentMethod } from '@/components/checkout/PaymentMethodSelector';
+import { CardPaymentForm, CardPaymentData } from '@/components/checkout/CardPaymentForm';
 
 interface PixPaymentData {
   qrCode: string;
@@ -42,6 +44,7 @@ const Checkout = () => {
   const [pixData, setPixData] = useState<PixPaymentData | null>(null);
   const [paymentStatus, setPaymentStatus] = useState<string>('pending');
   const [copied, setCopied] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('pix');
 
   const finalTotal = totalPrice + deliveryFee;
 
@@ -115,7 +118,7 @@ const Checkout = () => {
         customer_email: customerEmail || null,
         customer_phone: customerPhone,
         delivery_address: JSON.parse(JSON.stringify(address)),
-        payment_method: 'pix',
+        payment_method: paymentMethod,
         payment_status: 'pending',
         status: 'pending',
       };
@@ -130,36 +133,101 @@ const Checkout = () => {
 
       setOrderId(order.id);
 
-      // Create PIX payment
-      const { data: pixResponse, error: pixError } = await supabase.functions.invoke('create-pix-payment', {
-        body: {
-          orderId: order.id,
-          amount: finalTotal,
-          description: `Pedido DoceEntrega #${order.id.slice(0, 8)}`,
-          payerEmail: customerEmail || undefined,
-          payerName: customerName,
-        },
-      });
+      if (paymentMethod === 'pix') {
+        // Create PIX payment
+        const { data: pixResponse, error: pixError } = await supabase.functions.invoke('create-pix-payment', {
+          body: {
+            orderId: order.id,
+            amount: finalTotal,
+            description: `Pedido DoceEntrega #${order.id.slice(0, 8)}`,
+            payerEmail: customerEmail || undefined,
+            payerName: customerName,
+          },
+        });
 
-      if (pixError) throw pixError;
+        if (pixError) throw pixError;
 
-      if (!pixResponse.success) {
-        throw new Error(pixResponse.error || 'Erro ao criar pagamento PIX');
+        if (!pixResponse.success) {
+          throw new Error(pixResponse.error || 'Erro ao criar pagamento PIX');
+        }
+
+        setPixData({
+          qrCode: pixResponse.qrCode,
+          qrCodeBase64: pixResponse.qrCodeBase64,
+          expirationDate: pixResponse.expirationDate,
+          paymentId: pixResponse.paymentId,
+        });
+        setPaymentStatus('awaiting_payment');
       }
-
-      setPixData({
-        qrCode: pixResponse.qrCode,
-        qrCodeBase64: pixResponse.qrCodeBase64,
-        expirationDate: pixResponse.expirationDate,
-        paymentId: pixResponse.paymentId,
-      });
-      setPaymentStatus('awaiting_payment');
+      // For card, the form will handle submission separately
 
     } catch (error: unknown) {
       console.error('Error creating order:', error);
       const errorMessage = error instanceof Error ? error.message : 'Erro ao criar pedido';
       toast({
         title: "Erro",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleCardPayment = async (cardData: CardPaymentData) => {
+    if (!orderId) {
+      // First create the order
+      await handleCreateOrder();
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const { data: cardResponse, error: cardError } = await supabase.functions.invoke('create-card-payment', {
+        body: {
+          orderId,
+          amount: finalTotal,
+          description: `Pedido DoceEntrega #${orderId.slice(0, 8)}`,
+          token: cardData.token,
+          paymentMethodId: cardData.paymentMethodId,
+          installments: cardData.installments,
+          payerEmail: customerEmail || 'cliente@doceentrega.com',
+          payerName: customerName,
+          payerDocument: cardData.payerDocument,
+        },
+      });
+
+      if (cardError) throw cardError;
+
+      if (!cardResponse.success) {
+        throw new Error(cardResponse.error || 'Erro ao processar pagamento');
+      }
+
+      if (cardResponse.paymentStatus === 'paid') {
+        setPaymentStatus('paid');
+        toast({
+          title: "Pagamento aprovado! 🎉",
+          description: "Seu pedido foi confirmado.",
+        });
+        clearCart();
+      } else if (cardResponse.paymentStatus === 'rejected') {
+        toast({
+          title: "Pagamento recusado",
+          description: cardResponse.statusDetail || "Verifique os dados do cartão.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Processando pagamento",
+          description: "Aguarde a confirmação.",
+        });
+      }
+    } catch (error: unknown) {
+      console.error('Error processing card payment:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Erro ao processar pagamento';
+      toast({
+        title: "Erro no pagamento",
         description: errorMessage,
         variant: "destructive",
       });
@@ -237,9 +305,9 @@ const Checkout = () => {
         </h1>
 
         <div className="grid lg:grid-cols-2 gap-6">
-          {/* Customer Info / PIX Display */}
+          {/* Customer Info / Payment */}
           <div className="space-y-4">
-            {!pixData ? (
+            {!pixData && paymentStatus !== 'paid' ? (
               <>
                 <Card>
                   <CardHeader>
@@ -288,8 +356,33 @@ const Checkout = () => {
                     />
                   </CardContent>
                 </Card>
+
+                {/* Payment Method Selection */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Forma de Pagamento</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <PaymentMethodSelector 
+                      selected={paymentMethod} 
+                      onSelect={setPaymentMethod} 
+                    />
+
+                    {paymentMethod === 'card' && (
+                      <div className="pt-4 border-t">
+                        <CardPaymentForm
+                          amount={finalTotal}
+                          onSubmit={handleCardPayment}
+                          isLoading={isLoading}
+                          payerEmail={customerEmail}
+                          payerName={customerName}
+                        />
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
               </>
-            ) : (
+            ) : pixData ? (
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -340,7 +433,7 @@ const Checkout = () => {
                   </p>
                 </CardContent>
               </Card>
-            )}
+            ) : null}
           </div>
 
           {/* Order Summary */}
@@ -379,7 +472,7 @@ const Checkout = () => {
                   </div>
                 </div>
 
-                {!pixData && (
+                {!pixData && paymentMethod === 'pix' && (
                   <Button
                     className="w-full"
                     size="lg"
