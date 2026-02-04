@@ -5,8 +5,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 
-// Mercado Pago Public Key - this is a publishable key, safe to include in client code
-const MP_PUBLIC_KEY = 'APP_USR-your-public-key'; // User needs to configure this
+// Mercado Pago Public Key from environment
+const MP_PUBLIC_KEY = import.meta.env.VITE_MERCADO_PAGO_PUBLIC_KEY || '';
 
 declare global {
   interface Window {
