@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Truck, Plus, Trash2, Save, Loader2 } from 'lucide-react';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { Button } from '@/components/ui/button';
@@ -25,22 +24,11 @@ const DEFAULT_ZONES: DeliveryZone[] = [
 ];
 
 const AdminSettings = () => {
-  const navigate = useNavigate();
   const [zones, setZones] = useState<DeliveryZone[]>([]);
   const [isSaving, setIsSaving] = useState(false);
-  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const adminAccess = sessionStorage.getItem('adminAccess');
-    if (adminAccess !== 'true') {
-      navigate('/admin-login');
-      return;
-    }
-    
-    setIsAdmin(true);
-    setIsLoading(true);
-    
     // Load zones from localStorage or use defaults
     const savedZones = localStorage.getItem('delivery_zones_v2');
     if (savedZones) {
@@ -49,8 +37,7 @@ const AdminSettings = () => {
       setZones(DEFAULT_ZONES);
     }
     setIsLoading(false);
-  }, [navigate]);
-
+  }, []);
 
   const updateZoneFee = (zoneId: string, newFee: number) => {
     setZones(prev => prev.map(zone => 
@@ -96,11 +83,13 @@ const AdminSettings = () => {
     setIsSaving(false);
   };
 
-  if (isAdmin === null || isLoading) {
+  if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
+      <AdminLayout title="Configurações de Frete" subtitle="Configure zonas e valores de entrega">
+        <div className="flex items-center justify-center min-h-[50vh]">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </AdminLayout>
     );
   }
 
