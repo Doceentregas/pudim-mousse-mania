@@ -45,14 +45,8 @@ const AdminProducts = () => {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
-  // Check admin access via sessionStorage
+  // Admin access is now handled by AdminLayout via useAuthContext
   useEffect(() => {
-    const adminAccess = sessionStorage.getItem('adminAccess');
-    if (adminAccess !== 'true') {
-      navigate('/admin-login');
-      return;
-    }
-    
     setIsAdmin(true);
     setLoading(true);
 
@@ -63,7 +57,7 @@ const AdminProducts = () => {
     }
 
     fetchProducts();
-  }, [navigate]);
+  }, []);
 
   const addCategory = () => {
     if (!newCategory.trim()) return;

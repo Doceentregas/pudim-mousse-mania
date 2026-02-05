@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useCartContext } from '@/contexts/CartContext';
+import { useAuthContext } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { AddressForm, Address } from '@/components/checkout/AddressForm';
@@ -33,6 +34,7 @@ const emptyAddress: Address = {
 const Checkout = () => {
   const navigate = useNavigate();
   const { items, totalPrice, clearCart } = useCartContext();
+  const { user } = useAuthContext();
   
   const [customerName, setCustomerName] = useState('');
   const [customerEmail, setCustomerEmail] = useState('');
@@ -101,7 +103,7 @@ const Checkout = () => {
     setIsLoading(true);
 
     try {
-      // Create order in database
+      // Create order via edge function (supports both guest and authenticated users)
       const orderData = {
         items: items.map(item => ({
           productId: item.product.id,
@@ -117,20 +119,23 @@ const Checkout = () => {
         customer_name: customerName,
         customer_email: customerEmail || null,
         customer_phone: customerPhone,
-        delivery_address: JSON.parse(JSON.stringify(address)),
+        delivery_address: address,
         payment_method: paymentMethod,
-        payment_status: 'pending',
-        status: 'pending',
+        user_id: user?.id || null, // Include user_id if authenticated
       };
 
-      const { data: order, error: orderError } = await supabase
-        .from('orders')
-        .insert([orderData])
-        .select()
-        .single();
+      // Use edge function for order creation (supports guest checkout)
+      const { data: orderResponse, error: orderError } = await supabase.functions.invoke('create-order', {
+        body: orderData,
+      });
 
       if (orderError) throw orderError;
 
+      if (!orderResponse.success) {
+        throw new Error(orderResponse.error || 'Erro ao criar pedido');
+      }
+
+      const order = orderResponse.order;
       setOrderId(order.id);
 
       if (paymentMethod === 'pix') {

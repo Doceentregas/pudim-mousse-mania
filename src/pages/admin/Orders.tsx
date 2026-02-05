@@ -90,22 +90,11 @@ const AdminOrders = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
-  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
 
-  // Check admin access via sessionStorage
-  useEffect(() => {
-    const adminAccess = sessionStorage.getItem('adminAccess');
-    if (adminAccess !== 'true') {
-      navigate('/admin-login');
-    } else {
-      setIsAdmin(true);
-    }
-  }, [navigate]);
+  // Admin access is now handled by AdminLayout via useAuthContext
 
   // Fetch orders
   useEffect(() => {
-    if (!isAdmin) return;
-
     setIsLoadingOrders(true);
 
     const fetchOrders = async () => {
@@ -174,7 +163,7 @@ const AdminOrders = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [isAdmin]);
+  }, []);
 
   // Filter orders
   useEffect(() => {
@@ -267,13 +256,7 @@ const AdminOrders = () => {
     .reduce((sum, o) => sum + o.total, 0);
   const pendingOrders = orders.filter(o => o.status === 'pending' || o.status === 'confirmed').length;
 
-  if (isAdmin === null) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <RefreshCw className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
+  // AdminLayout handles the loading state and auth check
 
   return (
     <AdminLayout title="Pedidos" subtitle="Gerencie todos os pedidos">
