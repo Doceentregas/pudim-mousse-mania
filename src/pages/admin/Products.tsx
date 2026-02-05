@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Pencil, Trash2, Upload, Save, X, Package } from 'lucide-react';
-import { Layout } from '@/components/layout/Layout';
+import { AdminLayout } from '@/components/admin/AdminLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -257,34 +257,17 @@ const AdminProducts = () => {
 
   if (isAdmin === null || loading) {
     return (
-      <Layout>
-        <div className="container px-4 py-8">
-          <div className="flex items-center justify-center min-h-[400px]">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-          </div>
-        </div>
-      </Layout>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
     );
   }
 
   return (
-    <Layout>
-      <div className="container px-4 py-6">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-          <div>
-            <h1 className="font-serif text-2xl font-bold text-foreground">
-              Gestão de Produtos
-            </h1>
-            <p className="text-muted-foreground">
-              Adicione, edite ou remova produtos do cardápio
-            </p>
-          </div>
-          
-          <div className="flex gap-2 flex-wrap">
-            <Button variant="outline" onClick={() => navigate('/admin/pedidos')}>
-              Ver Pedidos
-            </Button>
+    <AdminLayout title="Produtos" subtitle="Adicione, edite ou remova produtos do cardápio">
+      <div className="space-y-6">
+        {/* Actions */}
+        <div className="flex gap-2 flex-wrap justify-end">
             <Dialog open={isCategoryDialogOpen} onOpenChange={setIsCategoryDialogOpen}>
               <DialogTrigger asChild>
                 <Button variant="outline">
@@ -473,7 +456,6 @@ const AdminProducts = () => {
               </DialogContent>
             </Dialog>
           </div>
-        </div>
 
         {/* Products Grid */}
         {products.length === 0 ? (
@@ -547,7 +529,7 @@ const AdminProducts = () => {
           </div>
         )}
       </div>
-    </Layout>
+    </AdminLayout>
   );
 };
 

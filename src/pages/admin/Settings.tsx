@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Truck, Plus, Trash2, Save, Loader2, LogOut } from 'lucide-react';
-import { Layout } from '@/components/layout/Layout';
+import { Truck, Plus, Trash2, Save, Loader2 } from 'lucide-react';
+import { AdminLayout } from '@/components/admin/AdminLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -51,11 +51,6 @@ const AdminSettings = () => {
     setIsLoading(false);
   }, [navigate]);
 
-  const handleLogout = () => {
-    sessionStorage.removeItem('adminAccess');
-    toast({ title: "Sessão encerrada" });
-    navigate('/admin-login');
-  };
 
   const updateZoneFee = (zoneId: string, newFee: number) => {
     setZones(prev => prev.map(zone => 
@@ -103,41 +98,25 @@ const AdminSettings = () => {
 
   if (isAdmin === null || isLoading) {
     return (
-      <Layout>
-        <div className="flex items-center justify-center min-h-screen">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      </Layout>
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
     );
   }
 
   return (
-    <Layout>
-      <div className="container px-4 py-6">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" onClick={() => navigate('/admin/pedidos')}>
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-            <h1 className="font-serif text-2xl font-bold text-foreground">
-              Configurações de Frete
-            </h1>
-          </div>
-          <div className="flex gap-2">
-            <Button onClick={saveZones} disabled={isSaving}>
-              {isSaving ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              ) : (
-                <Save className="h-4 w-4 mr-2" />
-              )}
-              Salvar
-            </Button>
-            <Button variant="destructive" onClick={handleLogout}>
-              <LogOut className="h-4 w-4 mr-2" />
-              Sair
-            </Button>
-          </div>
+    <AdminLayout title="Configurações de Frete" subtitle="Configure zonas e valores de entrega">
+      <div className="space-y-6">
+        {/* Actions */}
+        <div className="flex justify-end">
+          <Button onClick={saveZones} disabled={isSaving}>
+            {isSaving ? (
+              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+            ) : (
+              <Save className="h-4 w-4 mr-2" />
+            )}
+            Salvar
+          </Button>
         </div>
 
         {/* Zones */}
@@ -208,7 +187,7 @@ const AdminSettings = () => {
           </CardContent>
         </Card>
       </div>
-    </Layout>
+    </AdminLayout>
   );
 };
 
