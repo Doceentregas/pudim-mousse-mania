@@ -28,24 +28,27 @@ const AdminSettings = () => {
   const navigate = useNavigate();
   const [zones, setZones] = useState<DeliveryZone[]>([]);
   const [isSaving, setIsSaving] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     const adminAccess = sessionStorage.getItem('adminAccess');
     if (adminAccess !== 'true') {
       navigate('/admin-login');
-    } else {
-      setIsAdmin(true);
-      // Load zones from localStorage or use defaults
-      const savedZones = localStorage.getItem('delivery_zones_v2');
-      if (savedZones) {
-        setZones(JSON.parse(savedZones));
-      } else {
-        setZones(DEFAULT_ZONES);
-      }
-      setIsLoading(false);
+      return;
     }
+    
+    setIsAdmin(true);
+    setIsLoading(true);
+    
+    // Load zones from localStorage or use defaults
+    const savedZones = localStorage.getItem('delivery_zones_v2');
+    if (savedZones) {
+      setZones(JSON.parse(savedZones));
+    } else {
+      setZones(DEFAULT_ZONES);
+    }
+    setIsLoading(false);
   }, [navigate]);
 
   const handleLogout = () => {
@@ -98,7 +101,7 @@ const AdminSettings = () => {
     setIsSaving(false);
   };
 
-  if (isLoading) {
+  if (isAdmin === null || isLoading) {
     return (
       <Layout>
         <div className="flex items-center justify-center min-h-screen">
@@ -106,10 +109,6 @@ const AdminSettings = () => {
         </div>
       </Layout>
     );
-  }
-
-  if (!isAdmin) {
-    return null;
   }
 
   return (
