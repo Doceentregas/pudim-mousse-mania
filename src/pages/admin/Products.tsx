@@ -28,13 +28,13 @@ const AdminProducts = () => {
   const navigate = useNavigate();
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<string[]>(DEFAULT_CATEGORIES);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [uploading, setUploading] = useState(false);
   const [newCategory, setNewCategory] = useState('');
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
 
   // Form state
   const [name, setName] = useState('');
@@ -54,6 +54,7 @@ const AdminProducts = () => {
     }
     
     setIsAdmin(true);
+    setLoading(true);
 
     // Load categories from localStorage
     const savedCategories = localStorage.getItem('product_categories');
@@ -254,7 +255,7 @@ const AdminProducts = () => {
     }
   };
 
-  if (loading) {
+  if (isAdmin === null || loading) {
     return (
       <Layout>
         <div className="container px-4 py-8">
@@ -264,10 +265,6 @@ const AdminProducts = () => {
         </div>
       </Layout>
     );
-  }
-
-  if (!isAdmin) {
-    return null;
   }
 
   return (
