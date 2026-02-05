@@ -272,7 +272,7 @@ const AdminOrders = () => {
     .reduce((sum, o) => sum + o.total, 0);
   const pendingOrders = orders.filter(o => o.status === 'pending' || o.status === 'confirmed').length;
 
-  if (isAdmin === null || isLoadingOrders) {
+  if (isAdmin === null) {
     return (
       <Layout>
         <div className="flex items-center justify-center min-h-screen">
@@ -280,10 +280,6 @@ const AdminOrders = () => {
         </div>
       </Layout>
     );
-  }
-
-  if (!isAdmin) {
-    return null;
   }
 
   return (
