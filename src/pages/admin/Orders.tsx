@@ -26,7 +26,6 @@ import {
 
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
-import { useAuthContext } from '@/contexts/AuthContext';
 
 interface OrderItem {
   productId: string;
@@ -85,26 +84,27 @@ const PAYMENT_STATUS_CONFIG: Record<string, { label: string; color: string }> = 
 
 const AdminOrders = () => {
   const navigate = useNavigate();
-  const { user, isAdmin, loading: authLoading, signOut } = useAuthContext();
   const [orders, setOrders] = useState<Order[]>([]);
   const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
   const [isLoadingOrders, setIsLoadingOrders] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
 
-  // Check admin authentication via Supabase
+  // Check admin access via sessionStorage
   useEffect(() => {
-    if (authLoading) return;
-    
-    if (!user || !isAdmin) {
+    const adminAccess = sessionStorage.getItem('adminAccess');
+    if (adminAccess !== 'true') {
       navigate('/admin-login');
+    } else {
+      setIsAdmin(true);
     }
-  }, [user, isAdmin, authLoading, navigate]);
+  }, [navigate]);
 
   // Fetch orders
   useEffect(() => {
-    if (authLoading || !user || !isAdmin) return;
+    if (!isAdmin) return;
 
     setIsLoadingOrders(true);
 
@@ -174,7 +174,7 @@ const AdminOrders = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user, isAdmin, authLoading]);
+  }, [isAdmin]);
 
   // Filter orders
   useEffect(() => {
@@ -257,8 +257,8 @@ const AdminOrders = () => {
     });
   };
 
-  const handleLogout = async () => {
-    await signOut();
+  const handleLogout = () => {
+    sessionStorage.removeItem('adminAccess');
     toast({ title: "Sessão encerrada" });
     navigate('/admin-login');
   };
@@ -272,7 +272,7 @@ const AdminOrders = () => {
     .reduce((sum, o) => sum + o.total, 0);
   const pendingOrders = orders.filter(o => o.status === 'pending' || o.status === 'confirmed').length;
 
-  if (authLoading || (!user && !authLoading) || isLoadingOrders) {
+  if (!isAdmin || isLoadingOrders) {
     return (
       <Layout>
         <div className="flex items-center justify-center min-h-screen">

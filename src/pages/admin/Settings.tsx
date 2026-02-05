@@ -7,7 +7,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/hooks/use-toast';
-import { useAuthContext } from '@/contexts/AuthContext';
 
 interface DeliveryZone {
   id: string;
@@ -27,16 +26,17 @@ const DEFAULT_ZONES: DeliveryZone[] = [
 
 const AdminSettings = () => {
   const navigate = useNavigate();
-  const { user, isAdmin, loading: authLoading, signOut } = useAuthContext();
   const [zones, setZones] = useState<DeliveryZone[]>([]);
   const [isSaving, setIsSaving] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (authLoading) return;
-    
-    if (!user || !isAdmin) {
+    const adminAccess = sessionStorage.getItem('adminAccess');
+    if (adminAccess !== 'true') {
       navigate('/admin-login');
     } else {
+      setIsAdmin(true);
       // Load zones from localStorage or use defaults
       const savedZones = localStorage.getItem('delivery_zones_v2');
       if (savedZones) {
@@ -44,11 +44,12 @@ const AdminSettings = () => {
       } else {
         setZones(DEFAULT_ZONES);
       }
+      setIsLoading(false);
     }
-  }, [user, isAdmin, authLoading, navigate]);
+  }, [navigate]);
 
-  const handleLogout = async () => {
-    await signOut();
+  const handleLogout = () => {
+    sessionStorage.removeItem('adminAccess');
     toast({ title: "Sessão encerrada" });
     navigate('/admin-login');
   };
@@ -97,7 +98,7 @@ const AdminSettings = () => {
     setIsSaving(false);
   };
 
-  if (authLoading) {
+  if (isLoading) {
     return (
       <Layout>
         <div className="flex items-center justify-center min-h-screen">
