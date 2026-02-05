@@ -1,8 +1,9 @@
-import { ReactNode, useState, useEffect } from 'react';
+import { ReactNode, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { SidebarProvider, SidebarTrigger, SidebarInset } from '@/components/ui/sidebar';
 import { AdminSidebar } from './AdminSidebar';
 import { RefreshCw } from 'lucide-react';
+import { useAuthContext } from '@/contexts/AuthContext';
 
 interface AdminLayoutProps {
   children: ReactNode;
@@ -12,18 +13,27 @@ interface AdminLayoutProps {
 
 export function AdminLayout({ children, title, subtitle }: AdminLayoutProps) {
   const navigate = useNavigate();
-  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+  const { user, isAdmin, loading } = useAuthContext();
 
   useEffect(() => {
-    const adminAccess = sessionStorage.getItem('adminAccess');
-    if (adminAccess !== 'true') {
+    if (loading) return;
+    
+    // Redirect if not authenticated or not admin
+    if (!user || !isAdmin) {
       navigate('/admin-login');
-    } else {
-      setIsAdmin(true);
     }
-  }, [navigate]);
+  }, [user, isAdmin, loading, navigate]);
 
-  if (isAdmin === null) {
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-background">
+        <RefreshCw className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  // Don't render admin content if not authenticated as admin
+  if (!user || !isAdmin) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-background">
         <RefreshCw className="h-8 w-8 animate-spin text-primary" />

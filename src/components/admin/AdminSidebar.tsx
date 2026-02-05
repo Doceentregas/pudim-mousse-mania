@@ -1,6 +1,7 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Package, ShoppingCart, Truck, LogOut } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 import {
   Sidebar,
   SidebarContent,
@@ -28,8 +29,9 @@ export function AdminSidebar() {
 
   const isActive = (path: string) => currentPath === path;
 
-  const handleLogout = () => {
-    sessionStorage.removeItem('adminAccess');
+  const handleLogout = async () => {
+    // Sign out from Supabase (proper authentication logout)
+    await supabase.auth.signOut();
     toast({ title: "Sessão encerrada" });
     navigate('/admin-login');
   };
