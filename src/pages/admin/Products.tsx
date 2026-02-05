@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Plus, Pencil, Trash2, Upload, Save, X, Package } from 'lucide-react';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { Button } from '@/components/ui/button';
@@ -25,16 +24,14 @@ interface Product {
 const DEFAULT_CATEGORIES = ['pudim', 'mousse'];
 
 const AdminProducts = () => {
-  const navigate = useNavigate();
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<string[]>(DEFAULT_CATEGORIES);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [uploading, setUploading] = useState(false);
   const [newCategory, setNewCategory] = useState('');
-  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
 
   // Form state
   const [name, setName] = useState('');
@@ -45,11 +42,8 @@ const AdminProducts = () => {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
-  // Admin access is now handled by AdminLayout via useAuthContext
+  // Fetch products on mount
   useEffect(() => {
-    setIsAdmin(true);
-    setLoading(true);
-
     // Load categories from localStorage
     const savedCategories = localStorage.getItem('product_categories');
     if (savedCategories) {
@@ -249,11 +243,14 @@ const AdminProducts = () => {
     }
   };
 
-  if (isAdmin === null || loading) {
+  // AdminLayout handles auth check, show loading for products only
+  if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-      </div>
+      <AdminLayout title="Produtos" subtitle="Adicione, edite ou remova produtos do cardápio">
+        <div className="flex items-center justify-center min-h-[50vh]">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+        </div>
+      </AdminLayout>
     );
   }
 

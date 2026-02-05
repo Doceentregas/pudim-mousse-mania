@@ -51,17 +51,20 @@ const Perfil = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading, signOut } = useAuthContext();
   const [orders, setOrders] = useState<Order[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!authLoading && !user) {
+    // Wait for auth to finish loading before checking
+    if (authLoading) return;
+    
+    if (!user) {
       navigate('/login');
       return;
     }
 
-    if (user) {
-      fetchOrders();
-    }
+    // User is authenticated, fetch orders
+    setLoading(true);
+    fetchOrders();
   }, [user, authLoading, navigate]);
 
   const fetchOrders = async () => {
