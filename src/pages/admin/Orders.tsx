@@ -86,11 +86,11 @@ const AdminOrders = () => {
   const navigate = useNavigate();
   const [orders, setOrders] = useState<Order[]>([]);
   const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
-  const [isLoadingOrders, setIsLoadingOrders] = useState(true);
+  const [isLoadingOrders, setIsLoadingOrders] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
 
   // Check admin access via sessionStorage
   useEffect(() => {
@@ -272,7 +272,7 @@ const AdminOrders = () => {
     .reduce((sum, o) => sum + o.total, 0);
   const pendingOrders = orders.filter(o => o.status === 'pending' || o.status === 'confirmed').length;
 
-  if (!isAdmin || isLoadingOrders) {
+  if (isAdmin === null || isLoadingOrders) {
     return (
       <Layout>
         <div className="flex items-center justify-center min-h-screen">
