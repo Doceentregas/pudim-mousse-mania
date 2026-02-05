@@ -3,9 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { 
   Package, Clock, CheckCircle2, Truck, XCircle, 
   RefreshCw, Search, Filter, ChevronDown, Phone,
-  User, MapPin, Calendar, DollarSign, LogOut, Settings
+  User, MapPin, Calendar, DollarSign
 } from 'lucide-react';
-import { Layout } from '@/components/layout/Layout';
+import { AdminLayout } from '@/components/admin/AdminLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
@@ -257,11 +257,6 @@ const AdminOrders = () => {
     });
   };
 
-  const handleLogout = () => {
-    sessionStorage.removeItem('adminAccess');
-    toast({ title: "Sessão encerrada" });
-    navigate('/admin-login');
-  };
 
   // Stats
   const todayOrders = orders.filter(o => 
@@ -274,36 +269,15 @@ const AdminOrders = () => {
 
   if (isAdmin === null) {
     return (
-      <Layout>
-        <div className="flex items-center justify-center min-h-screen">
-          <RefreshCw className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      </Layout>
+      <div className="flex items-center justify-center min-h-screen">
+        <RefreshCw className="h-8 w-8 animate-spin text-primary" />
+      </div>
     );
   }
 
   return (
-    <Layout>
-      <div className="container px-4 py-6">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-          <h1 className="font-serif text-2xl font-bold text-foreground">
-            Painel Administrativo
-          </h1>
-          <div className="flex gap-2 flex-wrap">
-            <Button variant="outline" onClick={() => navigate('/admin/produtos')}>
-              <Package className="h-4 w-4 mr-2" />
-              Produtos
-            </Button>
-            <Button variant="outline" onClick={() => navigate('/admin/configuracoes')}>
-              <Settings className="h-4 w-4 mr-2" />
-              Frete
-            </Button>
-            <Button variant="destructive" onClick={handleLogout}>
-              <LogOut className="h-4 w-4 mr-2" />
-              Sair
-            </Button>
-          </div>
-        </div>
+    <AdminLayout title="Pedidos" subtitle="Gerencie todos os pedidos">
+      <div className="space-y-6">
 
         {/* Stats Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
@@ -568,7 +542,7 @@ const AdminOrders = () => {
           </DialogContent>
         </Dialog>
       </div>
-    </Layout>
+    </AdminLayout>
   );
 };
 
