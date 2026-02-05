@@ -78,8 +78,13 @@ export function CardPaymentForm({ amount, onSubmit, isLoading, payerEmail, payer
   const [selectedInstallments, setSelectedInstallments] = useState(1);
   const [cardError, setCardError] = useState('');
 
-  // Load Mercado Pago SDK
+  // Load Mercado Pago SDK only if public key is configured
   useEffect(() => {
+    if (!MP_PUBLIC_KEY) {
+      console.warn('Mercado Pago public key not configured');
+      return;
+    }
+
     if (window.MercadoPago) {
       initMercadoPago();
       return;
@@ -89,6 +94,9 @@ export function CardPaymentForm({ amount, onSubmit, isLoading, payerEmail, payer
     script.src = 'https://sdk.mercadopago.com/js/v2';
     script.async = true;
     script.onload = initMercadoPago;
+    script.onerror = () => {
+      console.error('Failed to load Mercado Pago SDK');
+    };
     document.body.appendChild(script);
 
     return () => {
@@ -99,10 +107,14 @@ export function CardPaymentForm({ amount, onSubmit, isLoading, payerEmail, payer
   }, []);
 
   const initMercadoPago = () => {
-    if (window.MercadoPago) {
-      const mpInstance = new window.MercadoPago(MP_PUBLIC_KEY, { locale: 'pt-BR' });
-      setMp(mpInstance);
-      setMpReady(true);
+    if (window.MercadoPago && MP_PUBLIC_KEY) {
+      try {
+        const mpInstance = new window.MercadoPago(MP_PUBLIC_KEY, { locale: 'pt-BR' });
+        setMp(mpInstance);
+        setMpReady(true);
+      } catch (error) {
+        console.error('Failed to initialize Mercado Pago:', error);
+      }
     }
   };
 
@@ -181,6 +193,14 @@ export function CardPaymentForm({ amount, onSubmit, isLoading, payerEmail, payer
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 15 }, (_, i) => (currentYear + i).toString().slice(-2));
   const months = Array.from({ length: 12 }, (_, i) => (i + 1).toString().padStart(2, '0'));
+
+  if (!MP_PUBLIC_KEY) {
+    return (
+      <div className="flex items-center justify-center p-8 text-muted-foreground">
+        <span>Pagamento com cartão não disponível no momento.</span>
+      </div>
+    );
+  }
 
   if (!mpReady) {
     return (
