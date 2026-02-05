@@ -1,27 +1,26 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, ArrowRight, Loader2, Lock } from 'lucide-react';
+import { ArrowRight, Loader2, Lock } from 'lucide-react';
 import { Layout } from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+
+const ADMIN_CODE = '0808';
 
 const AdminLogin = () => {
   const navigate = useNavigate();
-  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [code, setCode] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!email || !password) {
+    if (!code) {
       toast({
-        title: "Campos obrigatórios",
-        description: "Preencha o email e a senha",
+        title: "Campo obrigatório",
+        description: "Digite o código de acesso",
         variant: "destructive",
       });
       return;
@@ -29,69 +28,26 @@ const AdminLogin = () => {
 
     setIsLoading(true);
 
-    try {
-      // Sign in with Supabase Auth
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+    // Simulate a brief delay for UX
+    await new Promise(resolve => setTimeout(resolve, 500));
 
-      if (error) {
-        throw error;
-      }
-
-      if (!data.user) {
-        throw new Error('Usuário não encontrado');
-      }
-
-      // Check if user has admin role using RLS-protected query
-      try {
-        const { data: roleData, error: roleError } = await supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', data.user.id)
-          .eq('role', 'admin')
-          .maybeSingle();
-
-        if (roleError) {
-          console.error('Error checking admin role:', roleError);
-          await supabase.auth.signOut();
-          throw new Error('Erro ao verificar permissões');
-        }
-
-        if (!roleData) {
-          await supabase.auth.signOut();
-          toast({
-            title: "Acesso negado",
-            description: "Você não tem permissão de administrador",
-            variant: "destructive",
-          });
-          setIsLoading(false);
-          return;
-        }
-
-        toast({
-          title: "Acesso autorizado! 🔐",
-        });
-        navigate('/admin/pedidos');
-      } catch (roleCheckError) {
-        console.error('Role check failed:', roleCheckError);
-        await supabase.auth.signOut();
-        throw new Error('Erro ao verificar permissões');
-      }
-    } catch (error: unknown) {
-      console.error('Login error:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Erro ao fazer login';
+    if (code === ADMIN_CODE) {
+      // Store admin access in sessionStorage (cleared when browser closes)
+      sessionStorage.setItem('adminAccess', 'true');
+      
       toast({
-        title: "Erro de autenticação",
-        description: errorMessage === 'Invalid login credentials' 
-          ? 'Email ou senha incorretos' 
-          : errorMessage,
+        title: "Acesso autorizado! 🔐",
+      });
+      navigate('/admin/pedidos');
+    } else {
+      toast({
+        title: "Código incorreto",
+        description: "Verifique o código e tente novamente",
         variant: "destructive",
       });
-    } finally {
-      setIsLoading(false);
     }
+
+    setIsLoading(false);
   };
 
   return (
@@ -115,36 +71,17 @@ const AdminLogin = () => {
           <div className="p-6 rounded-2xl bg-card border border-border">
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="code">Código de Acesso</Label>
                 <Input 
-                  id="email" 
-                  type="email"
-                  placeholder="admin@exemplo.com" 
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  autoComplete="email"
+                  id="code" 
+                  type="password"
+                  placeholder="Digite o código"
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                  autoComplete="off"
+                  maxLength={10}
+                  className="text-center text-lg tracking-widest"
                 />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="password">Senha</Label>
-                <div className="relative">
-                  <Input 
-                    id="password" 
-                    type={showPassword ? 'text' : 'password'}
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    autoComplete="current-password"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                  >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
-                </div>
               </div>
 
               <Button type="submit" className="w-full" size="lg" disabled={isLoading}>
@@ -164,7 +101,7 @@ const AdminLogin = () => {
           </div>
 
           <p className="text-center text-sm text-muted-foreground mt-4">
-            Para obter acesso de administrador, entre em contato com o suporte.
+            Para obter acesso, entre em contato com o suporte.
           </p>
         </div>
       </div>

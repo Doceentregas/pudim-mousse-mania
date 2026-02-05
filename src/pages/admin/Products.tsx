@@ -11,7 +11,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuthContext } from '@/contexts/AuthContext';
 
 interface Product {
   id: string;
@@ -27,7 +26,6 @@ const DEFAULT_CATEGORIES = ['pudim', 'mousse'];
 
 const AdminProducts = () => {
   const navigate = useNavigate();
-  const { user, isAdmin, loading: authLoading } = useAuthContext();
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<string[]>(DEFAULT_CATEGORIES);
   const [loading, setLoading] = useState(true);
@@ -36,6 +34,7 @@ const AdminProducts = () => {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [uploading, setUploading] = useState(false);
   const [newCategory, setNewCategory] = useState('');
+  const [isAdmin, setIsAdmin] = useState(false);
 
   // Form state
   const [name, setName] = useState('');
@@ -46,14 +45,15 @@ const AdminProducts = () => {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
-  // Check admin authentication via Supabase
+  // Check admin access via sessionStorage
   useEffect(() => {
-    if (authLoading) return;
-    
-    if (!user || !isAdmin) {
+    const adminAccess = sessionStorage.getItem('adminAccess');
+    if (adminAccess !== 'true') {
       navigate('/admin-login');
       return;
     }
+    
+    setIsAdmin(true);
 
     // Load categories from localStorage
     const savedCategories = localStorage.getItem('product_categories');
@@ -62,7 +62,7 @@ const AdminProducts = () => {
     }
 
     fetchProducts();
-  }, [user, isAdmin, authLoading, navigate]);
+  }, [navigate]);
 
   const addCategory = () => {
     if (!newCategory.trim()) return;
@@ -254,7 +254,7 @@ const AdminProducts = () => {
     }
   };
 
-  if (authLoading || loading) {
+  if (loading) {
     return (
       <Layout>
         <div className="container px-4 py-8">
